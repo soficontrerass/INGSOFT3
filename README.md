@@ -15,7 +15,7 @@ TP1 y TP2 fueron desarrollados originalmente en repositorios separados.
 
 ## Unificación de repositorios
 
-Para cumplir con el requerimiento docente de entregar un solo enlace para todos los trabajos, unificamos ambos TPs en este repositorio.  
+Al principio habia hecho un repositorio por TP, asi que unificamos ambos TPs en este repositorio.  
 El proceso incluyó:
 
 - Clonar el repositorio de TP1 como base.
