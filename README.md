@@ -1,115 +1,30 @@
-# Proyecto Base para Práctica de Git
+# INGSOFT3
 
-Este proyecto es parte del Trabajo Práctico 01 – Git Básico.
-
-Contiene archivos simples para que puedas practicar creación de ramas, commits, solución de errores y versionado.
+Este repositorio contiene los trabajos prácticos de la materia Ingeniería de Software III.
 
 ## Estructura
-- `src/app.js`: contiene un script básico.
-- `data/info.txt`: contiene datos de ejemplo.
-# mi-api-docker
 
-## Descripción
+- **TP1/**: git basico
+- **TP2/**: docker 
+- **README.md**: Este archivo principal
 
-API REST simple en Node.js con Express y base de datos PostgreSQL, preparada para ejecutarse en entornos QA y PROD usando Docker y Docker Compose.
+## Introducción
 
----
+Cada carpeta contiene el código, documentación y recursos correspondientes a cada TP.  
+TP1 y TP2 fueron desarrollados originalmente en repositorios separados.
 
-## Requisitos
+## Unificación de repositorios
 
-- Docker
-- Docker Compose
+Para cumplir con el requerimiento docente de entregar un solo enlace para todos los trabajos, unificamos ambos TPs en este repositorio.  
+El proceso incluyó:
 
----
+- Clonar el repositorio de TP1 como base.
+- Importar el historial y archivos de TP2 usando `git merge --allow-unrelated-histories`.
+- Organizar los archivos de cada TP en sus respectivas carpetas (`TP1` y `TP2`).
+- Eliminar archivos duplicados de la raíz para mantener la estructura limpia.
+- Realizar commit y push para reflejar los cambios en GitHub.
 
-## Construcción de las imágenes
+De esta forma, se conserva el historial de commits de ambos trabajos y se facilita la revisión y entrega.
 
-```bash
-docker-compose build
-```
-
----
-
-## Ejecución de los contenedores
-
-```bash
-docker-compose up
-```
-
----
-
-## Acceso a la aplicación
-
-- **QA:** [http://localhost:3001/ping](http://localhost:3001/ping)
-- **PROD:** [http://localhost:3002/ping](http://localhost:3002/ping)
-
-Para ver los mensajes almacenados en la base de datos:
-- **QA:** [http://localhost:3001/mensajes](http://localhost:3001/mensajes)
-- **PROD:** [http://localhost:3002/mensajes](http://localhost:3002/mensajes)
-
----
-
-## Conexión a la base de datos PostgreSQL
-
-```bash
-docker exec -it mi-api-docker-db-1 psql -U postgres
-```
-
-Dentro de la consola de PostgreSQL, puedes crear la tabla y agregar datos:
-
-```sql
-CREATE TABLE tabla_a (mensaje VARCHAR(50));
-INSERT INTO tabla_a VALUES ('Hola mundo!');
-SELECT * FROM tabla_a;
-```
-
----
-
-## Verificación de persistencia de datos
-
-1. Reinicia los contenedores:
-   ```bash
-   docker-compose down
-   docker-compose up
-   ```
-2. Vuelve a consultar `/mensajes` y verifica que los datos siguen presentes.
-
----
-
-## Acceso a los logs
-
-Para ver los logs de la aplicación:
-```bash
-docker-compose logs app-qa
-docker-compose logs app-prod
-```
-
----
-
-## Versiones de la imagen en Docker Hub
-
-- Desarrollo: `sofiacontreras2003/2025_tp02_repobase:dev `
-- Estable: `sofiacontreras2003/2025_tp02_repobase:v1.0`
-
----
-
-## Problemas frecuentes
-
-- Si la app no conecta a la base, espera unos segundos y vuelve a intentar.
-- Si necesitas limpiar la base, elimina el volumen con:
-  ```bash
-  docker volume rm mi-api-docker_db_data
-  ```
-
----
-
-## Evidencia de funcionamiento
-
-Incluye capturas de pantalla o logs mostrando:
-- La app corriendo en QA y PROD.
-![alt text](image.png)
-- Conexión exitosa a la base de datos.
-
-- Persistencia de datos entre reinicios.
 
 ---
