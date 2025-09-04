@@ -1,2 +1,0 @@
-Este archivo contiene datos de ejemplo para practicar Git.
-Línea 1: Información inicial.
