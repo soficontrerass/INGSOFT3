@@ -104,3 +104,14 @@ Incluye capturas de pantalla o logs mostrando:
 - Persistencia de datos entre reinicios.
 
 ---
+
+## ¿Porque realizamos el TP asi?
+
+## Justificación del enfoque del TP2
+
+Realizamos el TP2 siguiendo buenas prácticas de desarrollo moderno, usando Docker para asegurar portabilidad y reproducibilidad.  
+Elegimos una base de datos PostgreSQL porque es robusta y ampliamente utilizada en proyectos reales, permitiendo demostrar la persistencia de datos entre reinicios de contenedores.  
+Utilizamos la imagen oficial `node:20` como base para la aplicación por su estabilidad y soporte, facilitando la ejecución en cualquier entorno.  
+Publicamos la imagen en Docker Hub con diferentes tags (`dev` y `v1.0`) para mostrar cómo se gestionan versiones de desarrollo y producción, permitiendo despliegues consistentes y controlados en distintos entornos (QA y PROD) usando la misma imagen y y variables de entorno.
+
+--- 
