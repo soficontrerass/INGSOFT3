@@ -43,7 +43,7 @@ Para ver los mensajes almacenados en la base de datos:
 ## Conexión a la base de datos PostgreSQL
 
 ```bash
-docker exec -it mi-api-docker-db-1 psql -U postgres
+docker exec -it tp2-db-1 psql -U postgres  
 ```
 
 Dentro de la consola de PostgreSQL, puedes crear la tabla y agregar datos:
@@ -89,7 +89,7 @@ docker-compose logs app-prod
 - Si la app no conecta a la base, espera unos segundos y vuelve a intentar.
 - Si necesitas limpiar la base, elimina el volumen con:
   ```bash
-  docker volume rm mi-api-docker_db_data
+  docker volume rm tp2-db-1
   ```
 
 ---
