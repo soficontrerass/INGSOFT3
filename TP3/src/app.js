@@ -8,3 +8,13 @@ function login(email, password) {
     return "Credenciales incorrectas";
   }
 }
+
+// Nueva función de registro
+function register(email, password) {
+  // Simulación de registro
+  if (email && password.length >= 6) {
+    return "Registro exitoso";
+  } else {
+    return "Datos inválidos";
+  }
+}
