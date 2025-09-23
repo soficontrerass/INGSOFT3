@@ -1,14 +1,18 @@
-// filepath: index.js
 const express = require('express');
+const cors = require('cors'); 
 const { Pool } = require('pg');
 const app = express();
 
+app.use(cors()); 
+app.use(express.json());
+
+
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
-  user: 'postgres',
+  user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'clave123',
   database: process.env.DB_NAME || 'postgres',
-  port: 5432,
+  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432,
 });
 
 app.get('/ping', (req, res) => {
@@ -24,6 +28,17 @@ app.get('/mensajes', async (req, res) => {
   }
 });
 
+app.post('/mensajes', async (req, res) => {
+  try {
+    const { mensaje } = req.body;
+    if (!mensaje) return res.status(400).json({ error: 'Mensaje requerido' });
+    await pool.query('INSERT INTO tabla_a (mensaje) VALUES ($1)', [mensaje]);
+    res.status(201).json({ message: 'Mensaje agregado' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(3000, () => {
-  console.log('API corriendo en puerto 3000');
+  console.log(`API corriendo en puerto 3000 (${process.env.NODE_ENV})`);
 });

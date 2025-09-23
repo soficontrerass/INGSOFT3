@@ -69,3 +69,12 @@ Construí y publiqué dos versiones de la imagen en Docker Hub:
   **Solución:** Revisé los nombres y valores en `docker-compose.yml`.
 
 ---
+
+## Mejoras y justificaciones
+
+- Separé las bases de datos para QA y PROD para simular entornos reales y evitar interferencia de datos.
+- Agregué un frontend para facilitar la interacción y visualización de los datos.
+- Usé un script SQL para inicializar la base de datos automáticamente.
+- Documenté cada decisión y problema resuelto para facilitar la defensa oral.
+
+
