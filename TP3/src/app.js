@@ -18,3 +18,13 @@ function register(email, password) {
     return "Datos inválidos";
   }
 }
+
+// Nueva función de recuperación de contraseña
+function recoverPassword(email) {
+  // Simulación de recuperación
+  if (email === "user@example.com") {
+    return "Email de recuperación enviado";
+  } else {
+    return "Email no registrado";
+  }
+}
