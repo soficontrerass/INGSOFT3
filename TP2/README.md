@@ -135,3 +135,23 @@ Publicamos la imagen en Docker Hub con diferentes tags (`dev` y `v1.0`) para mos
 3. Cambia entre QA y PROD, agrega mensajes y verifica que los datos son independientes.
 
 ---
+
+## Problema encontrado: Error "Failed to fetch" en el frontend
+
+**Descripción:**  
+Al intentar agregar mensajes desde el frontend, aparecía el error `Failed to fetch`. El backend respondía correctamente a las peticiones GET y POST desde el navegador y PowerShell, pero el frontend no lograba conectarse.
+
+**Causa:**  
+La URL utilizada en el fetch del frontend era `host.docker.internal`, pero en mi entorno (Windows con Docker Desktop), el frontend y el backend estaban expuestos en la misma máquina y red, por lo que debía usarse `localhost`.
+
+**Solución:**  
+Modifiqué el código del frontend para que las peticiones fetch usaran `localhost` en vez de `host.docker.internal`:
+```javascript
+fetch(`http://localhost:${env === 'qa' ? '3001' : '3002'}/mensajes`)
+```
+Con este cambio, el frontend pudo conectarse correctamente al backend y el error desapareció.
+
+**Aprendizaje:**  
+La URL para acceder a los servicios depende de cómo y dónde se ejecutan los contenedores. Es importante probar ambas opciones (`localhost` y `host.docker.internal`) según el entorno y la configuración de red de Docker.
+
+---

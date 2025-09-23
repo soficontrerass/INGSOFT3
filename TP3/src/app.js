@@ -28,3 +28,5 @@ function recoverPassword(email) {
     return "Email no registrado";
   }
 }
+}
+
