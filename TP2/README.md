@@ -115,3 +115,23 @@ Utilizamos la imagen oficial `node:20` como base para la aplicación por su esta
 Publicamos la imagen en Docker Hub con diferentes tags (`dev` y `v1.0`) para mostrar cómo se gestionan versiones de desarrollo y producción, permitiendo despliegues consistentes y controlados en distintos entornos (QA y PROD) usando la misma imagen y y variables de entorno.
 
 --- 
+---
+
+## Mejoras implementadas
+
+- Bases de datos separadas para QA y PROD, permitiendo datos independientes en cada entorno.
+- Endpoint POST `/mensajes` para agregar mensajes desde el frontend.
+- Frontend básico en React para visualizar y agregar mensajes en QA y PROD.
+- Script de inicialización para crear la tabla y datos iniciales automáticamente.
+- Documentación ampliada y ejemplos de uso.
+
+## Ejemplo de uso
+
+1. Levanta los servicios:
+   ```
+   docker-compose up --build
+   ```
+2. Accede al frontend en [http://localhost:3000](http://localhost:3000)
+3. Cambia entre QA y PROD, agrega mensajes y verifica que los datos son independientes.
+
+---
