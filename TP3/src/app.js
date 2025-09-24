@@ -29,4 +29,7 @@ function recoverPassword(email) {
   }
 }
 
-
+// Ejemplos de uso:
+console.log(login("user@example.com", "123456")); // Login exitoso
+console.log(register("nuevo@correo.com", "abcdef")); // Registro exitoso
+console.log(recoverPassword("user@example.com")); // Email de recuperación enviado
