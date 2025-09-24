@@ -2,11 +2,11 @@ name: TP4 CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
     paths:
       - 'TP4/**'
   pull_request:
-    branches: [main]
+    branches: [main, master]
     paths:
       - 'TP4/**'
 
