@@ -40,9 +40,14 @@ Se adjuntan capturas de pantalla en `/evidencias` mostrando la organización y e
 ## Evidencia de funcionamiento
 
 - Board con work items organizados (ver capturas en `/evidencias`)
+![Work Items 1](evidencias/estructura1.png)
+![Work Items 2](evidencias/estructura2.png)
 - Sprint con work items asignados
+![Sprint](evidencias/sprint.png)
 - Pull Requests aprobados y mergeados en GitHub
+![Pipeline](evidencias/pullrequest.png)
 - Pipeline de GitHub Actions ejecutando el código automáticamente
+![Pipeline](evidencias/pipeline.png)
 
 ---
 
