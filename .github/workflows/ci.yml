@@ -3,8 +3,12 @@ name: CI TP3
 on:
   push:
     branches: [main, master, feature/*]
+    paths:
+      - 'TP3/**'
   pull_request:
     branches: [main, master]
+    paths:
+      - 'TP3/**'
 
 jobs:
   build:
@@ -15,4 +19,3 @@ jobs:
 
       - name: Ejecutar app.js
         run: node TP3/src/app.js
-        
