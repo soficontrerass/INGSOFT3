@@ -15,6 +15,12 @@
 - `TP4/back`: código backend
 - `.github/workflows/ci4.yml`: workflow CI/CD
 
+## Funcionalidad implementada
+
+- El frontend consulta el backend mediante fetch al endpoint `/api/messages`.
+- El backend responde con un array de mensajes en formato JSON.
+- Los mensajes se muestran dinámicamente en la interfaz del frontend.
+
 ## Diseño del pipeline
 
 - Dos jobs independientes: build-front y build-back
@@ -29,8 +35,14 @@
 
 ## Evidencias
 
+- Captura de la página mostrando los mensajes obtenidos del backend.
+![Pagina con los resultados obtenidos del backend](evidencias/frontend.png)
+- Captura del endpoint funcionando en el navegador.
+![Endpoint](evidencias/backend.png)
 - El pipeline corre correctamente en cada push/pull request.
+![Pipeline](evidencias/pipeline.png)
 - Los artefactos se pueden descargar desde la sección **Artifacts** en GitHub Actions.
+![Artefactos](evidencias/pipeline.png)
 
 ## Consideraciones Adicionales
 
