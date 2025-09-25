@@ -1,38 +1,19 @@
 # Decisiones del TP3
 
-## Metodología ágil elegida: Kanban
+## Metodología ágil elegida y justificación
 
-Elegí **Kanban** porque es la más simple para equipos pequeños y trabajos prácticos. Permite visualizar el flujo de trabajo, priorizar tareas y adaptarse rápidamente a cambios sin la necesidad de planificar sprints estrictos.
-
-### Justificación
-
-- Fácil de implementar en GitHub Projects.
-- No requiere roles ni ceremonias complejas.
-- Permite agregar y mover tareas según avance real.
-- Ideal para trabajos prácticos y equipos reducidos.
-
-## Estructura de trabajo
-
-- **Epic:** Issue principal que representa una funcionalidad completa.
-- **User Stories:** Issues que describen funcionalidades específicas.
-- **Tasks:** Issues para dividir el trabajo en acciones concretas.
-- **Bugs:** Issues para reportar y solucionar errores.
-
-Toda la gestión se realiza en GitHub Projects, simulando el tablero de Azure Boards.
-
-## Evidencia de funcionamiento
-
-Se adjuntan capturas en `/evidencias` mostrando el tablero, Pull Requests y ejecución de pipelines.
-
----
-
-## Metodología ágil elegida: Agile (Azure DevOps)
-
-Elegí la metodología **Agile** en Azure DevOps porque permite organizar el trabajo en Epics, User Stories, Tasks y Bugs, facilitando la visualización y seguimiento del avance. Es flexible y adecuada para equipos pequeños, y se integra fácilmente con la gestión de sprints.
+Se eligió el proceso **Agile** de Azure DevOps por su flexibilidad y adaptación a equipos pequeños y proyectos académicos. Permite organizar el trabajo en ciclos cortos, priorizar tareas y gestionar cambios de manera eficiente, facilitando la colaboración y el seguimiento del avance.  
+La gestión de trabajo se realizó en Azure Boards, mientras que el control de versiones y la automatización CI/CD se implementaron en GitHub, aprovechando lo mejor de ambas plataformas.
 
 No configuré el equipo principal y las áreas del proyecto para centralizar la colaboración y asignación de tareas ya que voy a trabajar sola.
 
----
+## Estructura de trabajo
+
+- **Epics:** Agrupan funcionalidades principales y objetivos generales del proyecto.
+- **User Stories:** Representan necesidades y requisitos funcionales desde la perspectiva del usuario.
+- **Tasks:** Descomponen las User Stories en actividades técnicas concretas, facilitando la asignación y el control de progreso.
+- **Bugs:** Permiten registrar y gestionar errores detectados durante el desarrollo y pruebas.
+
 ## Estructura de trabajo en Azure Boards
 
 - **Epic:** Implementar sistema de login.
@@ -56,6 +37,21 @@ Se adjuntan capturas de pantalla en `/evidencias` mostrando la organización y e
 
 ---
 
+## Evidencia de funcionamiento
+
+- Board con work items organizados (ver capturas en `/evidencias`)
+![Work Items 1](evidencias/estructura1.png)
+![Work Items 2](evidencias/estructura2.png)
+- Sprint con work items asignados
+![Sprint](evidencias/sprint.png)
+- Pull Requests aprobados y mergeados en GitHub
+![Pipeline](evidencias/pullrequest.png)
+- Pipeline de GitHub Actions ejecutando el código automáticamente
+![Pipeline](evidencias/pipeline.png)
+
+---
+
+
 ## Integración técnica y automatización
 
 La gestión de trabajo se realizó en Azure DevOps, mientras que el control de versiones y la automatización de CI/CD se implementaron en GitHub usando GitHub Actions.  
@@ -72,11 +68,20 @@ Esto permite aprovechar lo mejor de ambas plataformas: organización ágil y aut
 Se configuró GitHub Actions para ejecutar el código automáticamente en cada cambio relevante.  
 Esto asegura que el sistema funciona y permite detectar errores rápidamente antes de integrar nuevas funcionalidades.
 
-## Evidencia de funcionamiento
+---
 
-Se adjuntan capturas en `/evidencias` mostrando:
-- Board con work items organizados en Azure DevOps.
-- Pull Requests aprobados y mergeados en GitHub.
-- Ejecución exitosa del pipeline de GitHub Actions.
+## Problemas encontrados y soluciones aplicadas
+
+- **Conflictos de merge en app.js:**  
+  Al integrar las ramas de feature, surgieron conflictos en el archivo principal. Se resolvieron manualmente, manteniendo una sola versión de cada función y realizando el commit correspondiente.
+
+- **Ruta incorrecta en el workflow de GitHub Actions:**  
+  Inicialmente, el pipeline fallaba porque la ruta al archivo `app.js` era incorrecta. Se corrigió la ruta en el archivo `ci.yml` para que apunte a `TP3/src/app.js`.
+
+- **Carpeta .github no visible en GitHub:**  
+  El workflow no se ejecutaba porque la carpeta `.github/workflows` estaba dentro de una subcarpeta. Se movió a la raíz del repositorio y se realizó el commit y push nuevamente.
+
+- **Sin cambios pendientes para subir:**  
+  En ocasiones, el mensaje `nothing to commit, working tree clean` aparecía porque los cambios ya estaban subidos. Se verificó la ubicación y el estado de los archivos antes de continuar.
 
 ---
