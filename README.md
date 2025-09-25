@@ -26,5 +26,18 @@ El proceso incluyó:
 
 De esta forma, se conserva el historial de commits de ambos trabajos y se facilita la revisión y entrega.
 
+---
+
+## Problemas encontrados y soluciones
+
+- Al principio, trabajé en varias ramas principales (`main` y `master`), lo que generó confusión y dificultó la integración de los TPs.
+- Tuve archivos sin seguimiento que bloqueaban el cambio de rama y el pull, por lo que debí moverlos o eliminarlos temporalmente.
+- La protección de ramas en GitHub impedía hacer el merge del PR sin revisión, así que documenté el proceso y solicité revisión.
+- Finalmente, decidí dejar `main` como rama principal y eliminé `master` para evitar confusiones futuras.
+
+## Decisiones tomadas
+
+- Usar `main` como rama principal para todos los TPs.
+- Documentar cada integración y problema en este archivo para asegurar trazabilidad y calidad.
 
 ---
