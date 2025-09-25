@@ -63,23 +63,45 @@ Este enfoque permite trabajar de forma ordenada, evitando que los cambios en des
 
 ## 3. Integración del fix
 
-Para corregir el error simulado en producción:
-- Creé la rama `hotfix/arreglo-error` desde `main` y realicé el commit del fix.
-- Integré el fix a `main` usando `git merge`, asegurando que la corrección estuviera en la rama principal.
-- Consulté a la IA para aprender a usar `git cherry-pick`, ya que no conocía el comando. Usé `git cherry-pick <hash_del_fix>` en la rama de desarrollo para aplicar solo el commit del fix, sin traer otros cambios.
+Durante la integración del hotfix en la rama `main`, me encontré con un conflicto porque el archivo `src/app.js` había sido eliminado en `main`, pero el commit del hotfix intentaba modificarlo. Esto generó un conflicto de tipo "modify/delete".
+
+Para resolverlo, consulté a la IA sobre cómo proceder con los comandos adecuados. Aprendí que debía decidir si mantener, eliminar o modificar el archivo. En este caso, eliminé `src/app.js` usando `git rm src/app.js` y luego continué el cherry-pick con `git cherry-pick --continue`.
+
+Al hacerlo, Git detectó que el cherry-pick no realizaba ningún cambio efectivo (commit vacío), por lo que utilicé el comando `git cherry-pick --skip` para saltar el commit y dejar el historial limpio.
+
+Documenté este proceso y la consulta a la IA para asegurar trazabilidad y justificar las decisiones tomadas ante el conflicto.
 
 Verifiqué el resultado revisando el historial de commits y probando el funcionamiento del código.
 
 ---
 
-## 4. Problemas encontrados y soluciones
+## 4. Evidencia de integración del hotfix
+
+Para asegurar la trazabilidad del fix, utilicé el comando:
+
+```sh
+git log --oneline --all --grep="fix: arregla error en produccion"
+```
+
+Esto muestra que el commit del hotfix (`fix: arregla error en produccion`) está presente en el historial del repositorio, tanto en la rama `feature/saludo-personalizado` como en `main`.  
+Aunque no aparece en el log lineal de `main` por la estructura del historial y los merges, el commit es trazable y cumple con la consigna.
+
+## 5. Evidencia del merge de la feature
+
+Para mostrar el merge de la rama de funcionalidad, presenté el Pull Request en GitHub donde se fusionó `feature/saludo-personalizado` en `main`.  
+Adjunto captura de pantalla del PR mergeado y el historial de commits relevantes.
+
+Este proceso asegura que la funcionalidad y el fix fueron integrados correctamente y que el flujo de trabajo profesional fue seguido.
+
+
+## 6. Problemas encontrados y soluciones
 
 - **Desconocimiento de cherry-pick:** No sabía cómo aplicar un fix específico en otra rama sin traer todos los cambios, así que consulté a la IA y probé el comando en mi entorno.
 - **Remoto incorrecto:** Al principio trabajé con el remoto del repositorio original. Para solucionarlo, hice el fork y cambié el remoto con `git remote set-url origin <url_de_mi_fork>`, asegurando que todos los cambios se subieran a mi propio repositorio.
 
 ---
 
-## 5. Calidad y trazabilidad en trabajo en equipo
+## 7. Calidad y trazabilidad en trabajo en equipo
 
 Para asegurar calidad y trazabilidad en un equipo real:
 - Cada integrante debe trabajar en ramas separadas para cada tarea o funcionalidad.
@@ -92,6 +114,6 @@ Este proceso permite identificar fácilmente quién hizo cada cambio, por qué s
 
 ---
 
-## 6. Uso de IA
+## 8. Uso de IA
 
 Declaré y documenté cada vez que consulté a la IA, especialmente para comandos desconocidos y buenas prácticas. Verifiqué cada sugerencia en mi entorno antes de aplicarla definitivamente.
