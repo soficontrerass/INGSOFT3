@@ -1,0 +1,48 @@
+name: TP4 CI
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'TP4/frontend/**'
+      - 'TP4/backend/**'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'TP4/frontend/**'
+      - 'TP4/backend/**'
+
+jobs:
+  build-front:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: TP4/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm install
+      - name: Build Frontend
+        run: npm run build
+      - name: Upload Frontend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: front-dist
+          path: TP4/frontend/build
+
+  build-back:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: TP4/backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm install
+      - name: Test Backend
+        run: npm test
+      - name: Upload Backend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: back-dist
+          path: TP4/backend/

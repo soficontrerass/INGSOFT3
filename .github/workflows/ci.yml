@@ -1,0 +1,21 @@
+name: CI TP3
+
+on:
+  push:
+    branches: [main, master, feature/*]
+    paths:
+      - 'TP3/**'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'TP3/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Ejecutar app.js
+        run: node TP3/src/app.js
