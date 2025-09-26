@@ -23,6 +23,8 @@
 
 ## Diseño del pipeline
 
+- En este TP implementé el pipeline CI/CD usando GitHub Actions, que utiliza agentes hospedados por GitHub.
+- Si el TP exigiera Azure DevOps y agente Self-Hosted, el proceso sería similar pero instalando y configurando el agente en mi máquina.
 - Dos jobs independientes: build-front y build-back
 - build-front: instala dependencias y compila React
 - build-back: instala dependencias y ejecuta tests
@@ -30,6 +32,7 @@
 
 ## Artefactos
 
+- Los artefactos sirven para guardar y compartir los resultados de los procesos de build en el pipeline
 - **front-dist**: Archivos estáticos del frontend
 - **back-dist**: Código backend listo para deploy
 
