@@ -58,6 +58,8 @@ Construí y publiqué dos versiones de la imagen en Docker Hub:
 - La aplicación responde correctamente en ambos entornos (`/ping` y `/mensajes`).
 - La base de datos mantiene los datos entre reinicios de contenedor.
 - Los logs muestran la conexión exitosa y la persistencia de datos.
+![QA](evidencias/qa.png)
+![Produccion](evidencias/prod.png)
 
 ---
 
