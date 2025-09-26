@@ -56,11 +56,6 @@ El pipeline se ejecuta automáticamente en cada push o pull request a `main` o `
 - **front-dist**: Build optimizado de React
 - **back-dist**: Código backend listo para deploy
 
-## Problemas y Soluciones
-
-- **Rutas en el pipeline**: Inicialmente los jobs fallaban porque las rutas configuradas no coincidían con los nombres reales de las carpetas (`front` vs `frontend`, `back` vs `backend`). Se corrigió el workflow para usar las rutas correctas.
-- **node_modules en verde**: Aparecían como archivos nuevos porque no estaban ignorados. Se solucionó agregando `.gitignore` en ambas carpetas.
-- **Carpetas faltantes en el repo**: El pipeline fallaba si las carpetas no estaban subidas a GitHub. Se aseguraron los commits y el push de toda la estructura.
 
 ---
 
