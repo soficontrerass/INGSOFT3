@@ -33,3 +33,8 @@ function recoverPassword(email) {
 console.log(login("user@example.com", "123456")); // Login exitoso
 console.log(register("nuevo@correo.com", "abcdef")); // Registro exitoso
 console.log(recoverPassword("user@example.com")); // Email de recuperación enviado
+
+// Ejemplos de uso adicionales para test
+console.log(login("otro@correo.com", "abcdef")); // Credenciales incorrectas
+console.log(register("nuevo@correo.com", "abc")); // Datos inválidos
+console.log(recoverPassword("noexiste@correo.com")); // Email no registrado
