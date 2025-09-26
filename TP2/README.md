@@ -98,7 +98,7 @@ docker-compose logs app-prod
 
 Incluye capturas de pantalla o logs mostrando:
 - La app corriendo en QA y PROD.
-![alt text](image.png)
+![QA y PROD](image.png)
 - Conexión exitosa a la base de datos.
 
 - Persistencia de datos entre reinicios.
@@ -115,7 +115,6 @@ Utilizamos la imagen oficial `node:20` como base para la aplicación por su esta
 Publicamos la imagen en Docker Hub con diferentes tags (`dev` y `v1.0`) para mostrar cómo se gestionan versiones de desarrollo y producción, permitiendo despliegues consistentes y controlados en distintos entornos (QA y PROD) usando la misma imagen y y variables de entorno.
 
 --- 
----
 
 ## Mejoras implementadas
 
@@ -125,6 +124,28 @@ Publicamos la imagen en Docker Hub con diferentes tags (`dev` y `v1.0`) para mos
 - Script de inicialización para crear la tabla y datos iniciales automáticamente.
 - Documentación ampliada y ejemplos de uso.
 
+## Estrategia de versionado y publicación de imágenes
+
+Para asegurar un desarrollo y despliegue controlado, publiqué dos versiones de la imagen de la aplicación en Docker Hub:
+
+- **dev:** Imagen destinada a desarrollo y pruebas, donde se pueden realizar cambios y testear nuevas funcionalidades sin afectar la versión estable.
+- **v1.0:** Imagen estable lista para producción, utilizada en entornos donde se requiere mayor confiabilidad.
+
+Esto permite que los entornos QA y PROD usen la misma imagen base pero con diferentes configuraciones, y facilita el mantenimiento y la actualización de la aplicación.  
+En el archivo `docker-compose.yml` se puede especificar qué versión de la imagen utilizar en cada entorno, cambiando el tag según sea necesario.
+
+**Ejemplo de uso en docker-compose.yml:**
+```yaml
+app-qa:
+  image: sofiacontreras2003/2025_tp02_repobase:dev
+  ...
+app-prod:
+  image: sofiacontreras2003/2025_tp02_repobase:v1.0
+  ...
+```
+De esta forma, se garantiza que cada entorno utilice la versión adecuada de la aplicación, facilitando el control de cambios y la estabilidad del sistema.
+
+
 ## Ejemplo de uso
 
 1. Levanta los servicios:
@@ -133,25 +154,5 @@ Publicamos la imagen en Docker Hub con diferentes tags (`dev` y `v1.0`) para mos
    ```
 2. Accede al frontend en [http://localhost:3000](http://localhost:3000)
 3. Cambia entre QA y PROD, agrega mensajes y verifica que los datos son independientes.
-
----
-
-## Problema encontrado: Error "Failed to fetch" en el frontend
-
-**Descripción:**  
-Al intentar agregar mensajes desde el frontend, aparecía el error `Failed to fetch`. El backend respondía correctamente a las peticiones GET y POST desde el navegador y PowerShell, pero el frontend no lograba conectarse.
-
-**Causa:**  
-La URL utilizada en el fetch del frontend era `host.docker.internal`, pero en mi entorno (Windows con Docker Desktop), el frontend y el backend estaban expuestos en la misma máquina y red, por lo que debía usarse `localhost`.
-
-**Solución:**  
-Modifiqué el código del frontend para que las peticiones fetch usaran `localhost` en vez de `host.docker.internal`:
-```javascript
-fetch(`http://localhost:${env === 'qa' ? '3001' : '3002'}/mensajes`)
-```
-Con este cambio, el frontend pudo conectarse correctamente al backend y el error desapareció.
-
-**Aprendizaje:**  
-La URL para acceder a los servicios depende de cómo y dónde se ejecutan los contenedores. Es importante probar ambas opciones (`localhost` y `host.docker.internal`) según el entorno y la configuración de red de Docker.
 
 ---
