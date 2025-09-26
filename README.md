@@ -4,8 +4,11 @@ Este repositorio contiene los trabajos prácticos de la materia Ingeniería de S
 
 ## Estructura
 
+- **.github/**: Archivos .yml para CI/CD
 - **TP1/**: git basico
 - **TP2/**: docker 
+- **TP3/**: Automatización de pruebas y CI/CD.
+- **TP4/** : Pipeline CI/CD con integración entre frontend y backend.
 - **README.md**: Este archivo principal
 
 ## Introducción
@@ -39,6 +42,5 @@ De esta forma, se conserva el historial de commits de ambos trabajos y se facili
 
 - Usar `main` como rama principal para todos los TPs.
 - Documentar cada integración y problema en este archivo para asegurar trazabilidad y calidad.
-
 
 ---
