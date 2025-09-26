@@ -13,7 +13,33 @@ API REST simple en Node.js con Express y base de datos PostgreSQL, preparada par
 
 ---
 
-## Construcción de las imágenes
+## Arquitectura de contenedores e imágenes
+
+El entorno se compone de cinco contenedores principales:
+
+- Frontend: `tp2-frontend-1`
+- Backend QA: `tp2-app-qa-1`
+- Backend PROD: `tp2-app-prod-1`
+- Base de datos QA: `tp2-db-qa-1`
+- Base de datos PROD: `tp2-db-prod-1`
+
+Las imágenes utilizadas son:
+
+- Imagen personalizada de frontend (`tp2-frontend`)
+- Imagen personalizada de backend (`tp2-app-qa` / `tp2-app-prod`)
+- Imagen oficial de PostgreSQL (`postgres:16`)
+
+Esta separación garantiza independencia entre los entornos y persistencia de datos mediante volúmenes.
+
+
+## 1. Clonar y trabajar con el repositorio
+
+```bash
+git clone https://github.com/soficontrerass/INGSOFT3.git
+cd INGSOFT3/TP2
+```
+
+## 2. Construcción de las imágenes
 
 ```bash
 docker-compose build
@@ -21,7 +47,7 @@ docker-compose build
 
 ---
 
-## Ejecución de los contenedores
+## 3. Ejecución de los contenedores
 
 ```bash
 docker-compose up
@@ -29,7 +55,7 @@ docker-compose up
 
 ---
 
-## Acceso a la aplicación
+## 4. Acceso a la aplicación
 
 - **QA:** [http://localhost:3001/ping](http://localhost:3001/ping)
 - **PROD:** [http://localhost:3002/ping](http://localhost:3002/ping)
@@ -40,7 +66,7 @@ Para ver los mensajes almacenados en la base de datos:
 
 ---
 
-## Conexión a la base de datos PostgreSQL
+## 5. Conexión a la base de datos PostgreSQL
 
 ```bash
 docker exec -it tp2-db-1 psql -U postgres  
@@ -56,7 +82,7 @@ SELECT * FROM tabla_a;
 
 ---
 
-## Verificación de persistencia de datos
+## 6. Verificación de persistencia de datos
 
 1. Reinicia los contenedores:
    ```bash
@@ -67,7 +93,7 @@ SELECT * FROM tabla_a;
 
 ---
 
-## Acceso a los logs
+## 7. Acceso a los logs
 
 Para ver los logs de la aplicación:
 ```bash
@@ -77,14 +103,14 @@ docker-compose logs app-prod
 
 ---
 
-## Versiones de la imagen en Docker Hub
+## 8. Versiones de la imagen en Docker Hub
 
 - Desarrollo: `sofiacontreras2003/2025_tp02_repobase:dev `
 - Estable: `sofiacontreras2003/2025_tp02_repobase:v1.0`
 
 ---
 
-## Problemas frecuentes
+## 9. Problemas frecuentes
 
 - Si la app no conecta a la base, espera unos segundos y vuelve a intentar.
 - Si necesitas limpiar la base, elimina el volumen con:
@@ -94,7 +120,7 @@ docker-compose logs app-prod
 
 ---
 
-## Evidencia de funcionamiento
+## 10. Evidencia de funcionamiento
 
 Incluye capturas de pantalla o logs mostrando:
 - La app corriendo en QA y PROD.
@@ -105,7 +131,7 @@ Incluye capturas de pantalla o logs mostrando:
 
 ---
 
-## ¿Porque realizamos el TP asi?
+## 11. ¿Porque realizamos el TP asi?
 
 ## Justificación del enfoque del TP2
 
@@ -116,7 +142,7 @@ Publicamos la imagen en Docker Hub con diferentes tags (`dev` y `v1.0`) para mos
 
 --- 
 
-## Mejoras implementadas
+## 12. Mejoras implementadas
 
 - Bases de datos separadas para QA y PROD, permitiendo datos independientes en cada entorno.
 - Endpoint POST `/mensajes` para agregar mensajes desde el frontend.
@@ -124,7 +150,7 @@ Publicamos la imagen en Docker Hub con diferentes tags (`dev` y `v1.0`) para mos
 - Script de inicialización para crear la tabla y datos iniciales automáticamente.
 - Documentación ampliada y ejemplos de uso.
 
-## Estrategia de versionado y publicación de imágenes
+## 13. Estrategia de versionado y publicación de imágenes
 
 Para asegurar un desarrollo y despliegue controlado, publiqué dos versiones de la imagen de la aplicación en Docker Hub:
 
@@ -134,7 +160,7 @@ Para asegurar un desarrollo y despliegue controlado, publiqué dos versiones de 
 Esto permite que los entornos QA y PROD usen la misma imagen base pero con diferentes configuraciones, y facilita el mantenimiento y la actualización de la aplicación.  
 En el archivo `docker-compose.yml` se puede especificar qué versión de la imagen utilizar en cada entorno, cambiando el tag según sea necesario.
 
-**Ejemplo de uso en docker-compose.yml:**
+**14. Ejemplo de uso en docker-compose.yml:**
 ```yaml
 app-qa:
   image: sofiacontreras2003/2025_tp02_repobase:dev
@@ -146,7 +172,7 @@ app-prod:
 De esta forma, se garantiza que cada entorno utilice la versión adecuada de la aplicación, facilitando el control de cambios y la estabilidad del sistema.
 
 
-## Ejemplo de uso
+## 15. Ejemplo de uso
 
 1. Levanta los servicios:
    ```
