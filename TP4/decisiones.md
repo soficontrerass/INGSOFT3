@@ -11,8 +11,10 @@
 
 ## Estructura del repo
 
-- `TP4/front`: código frontend
-- `TP4/back`: código backend
+- `TP4/frontend`: código frontend
+- `TP4/backend`: código backend
+- `TP4/evidencias`: evidencias del trabajo práctico
+- `TP4/frontend/build`: archivos estáticos generados por React para producción
 - `.github/workflows/ci4.yml`: workflow CI/CD
 
 ## Funcionalidad implementada
@@ -33,7 +35,7 @@
 ## Artefactos
 
 - Los artefactos sirven para guardar y compartir los resultados de los procesos de build en el pipeline
-- **front-dist**: Archivos estáticos del frontend
+- **front-dist**: Archivos estáticos del frontend generados en `TP4/frontend/build`. La carpteta build es el resultado del proceso de compilación del frontend y que se publica como artefacto. 
 - **back-dist**: Código backend listo para deploy
 
 ## Evidencias
@@ -47,10 +49,13 @@
 - Los artefactos se pueden descargar desde la sección **Artifacts** en GitHub Actions.
 ![Artefactos](evidencias/artefactos.png)
 
-## Consideraciones Adicionales
+## Problemas y Soluciones
 
 - **Uso de `.gitignore`**: Se agregó para evitar subir `node_modules` al repo.
 - **Independencia de builds**: Los jobs de frontend y backend son independientes y corren en paralelo.
 - **Corrección de rutas**: Se ajustaron los nombres de carpetas en el workflow para evitar errores de ejecución.
+- **Rutas en el pipeline**: Inicialmente los jobs fallaban porque las rutas configuradas no coincidían con los nombres reales de las carpetas (`front` vs `frontend`, `back` vs `backend`). Se corrigió el workflow para usar las rutas correctas.
+- **node_modules en verde**: Aparecían como archivos nuevos porque no estaban ignorados. Se solucionó agregando `.gitignore` en ambas carpetas.
+- **Carpetas faltantes en el repo**: El pipeline fallaba si las carpetas no estaban subidas a GitHub. Se aseguraron los commits y el push de toda la estructura.
 
 ---
