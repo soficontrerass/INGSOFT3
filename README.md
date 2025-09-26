@@ -40,4 +40,5 @@ De esta forma, se conserva el historial de commits de ambos trabajos y se facili
 - Usar `main` como rama principal para todos los TPs.
 - Documentar cada integración y problema en este archivo para asegurar trazabilidad y calidad.
 
+
 ---
