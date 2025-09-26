@@ -45,7 +45,7 @@
 - El pipeline corre correctamente en cada push/pull request.
 ![Pipeline](evidencias/pipeline.png)
 - Los artefactos se pueden descargar desde la sección **Artifacts** en GitHub Actions.
-![Artefactos](evidencias/pipeline.png)
+![Artefactos](evidencias/artefactos.png)
 
 ## Consideraciones Adicionales
 
