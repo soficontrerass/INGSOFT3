@@ -48,6 +48,13 @@
 ![Pipeline](evidencias/pipeline.png)
 - Los artefactos se pueden descargar desde la sección **Artifacts** en GitHub Actions.
 ![Artefactos](evidencias/artefactos.png)
+- Creación del Pool y Agente Self-Hosted.
+![Pool](evidencias/pool.png)
+![Agent](evidencias/agent.png)
+![Selfhosted](evidencias/selfhosted.png)
+- El pipeline corre correctamente en cada push/pull request en Azure pipelines.
+![Pipeline](evidencias/buildbackend.png)
+![Pipeline](evidencias/buildfrontend.png)
 
 ## Problemas y Soluciones
 
