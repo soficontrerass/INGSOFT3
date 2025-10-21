@@ -48,6 +48,8 @@ Se adjuntan capturas de pantalla en `/evidencias` mostrando la organización y e
 ![Pipeline](evidencias/pullrequest.png)
 - Pipeline de GitHub Actions ejecutando el código automáticamente
 ![Pipeline](evidencias/pipeline.png)
+- Pipeline de Azure ejecutando el código automáticamente
+![Pipeline](evidencias/pipelineazure.png)
 
 ---
 
