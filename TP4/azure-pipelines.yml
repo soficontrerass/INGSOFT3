@@ -1,0 +1,38 @@
+trigger:
+  - main
+
+pool:
+  name: 'SelfHosted'
+
+stages:
+- stage: CI
+  jobs:
+  - job: BuildBackend
+    steps:
+    - checkout: self
+    - script: |
+        node --version
+        npm --version
+        cd $(Build.SourcesDirectory)/TP4/backend
+        npm ci
+        npm test
+      displayName: 'Build and Test Backend'
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '$(Build.SourcesDirectory)/TP4/backend'
+        artifact: 'backend-dist'
+
+  - job: BuildFrontend
+    steps:
+    - checkout: self
+    - script: |
+        node --version
+        npm --version
+        cd $(Build.SourcesDirectory)/TP4/frontend
+        npm ci
+        npm run build
+      displayName: 'Build Frontend'
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '$(Build.SourcesDirectory)/TP4/frontend/build'
+        artifact: 'frontend-dist'
