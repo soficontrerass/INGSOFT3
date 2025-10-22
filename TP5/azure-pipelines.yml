@@ -5,7 +5,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  azureSubscription: 'tp5-azure-connection'      # <- reemplazar si tu service connection tiene otro nombre
+  azureSubscription: 'tp5-azure-connection'      # <- cambia por tu Service Connection
   resourceGroup: 'tp5-ingsoft3-2025'
   backendAppQA: 'tp5-backend-qa-soficontrerass'
   backendAppPROD: 'tp5-backend-prod-soficontrerass'
@@ -14,43 +14,85 @@ variables:
 
 stages:
 - stage: Build
+  displayName: Build
   jobs:
   - job: BuildBackend
+    displayName: Build Backend
     steps:
     - checkout: self
     - script: |
-        cd backend
-        npm ci
-      displayName: 'Install Backend'
+        echo "Listing repo root:"
+        ls -la
+        echo "Listing TP5 folder:"
+        ls -la TP5 || true
+      displayName: 'Repo diagnostics'
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '18.x'
+      displayName: 'Use Node 18'
+    - script: |
+        if [ -d "TP5/backend" ]; then
+          cd TP5/backend
+          echo "Working in $(pwd)"
+          npm ci || npm install
+        else
+          echo "ERROR: TP5/backend not found"
+          exit 1
+        fi
+      displayName: 'Install Backend dependencies'
+      failOnStderr: false
     - task: ArchiveFiles@2
       inputs:
-        rootFolderOrFile: 'backend'
+        rootFolderOrFile: 'TP5/backend'
         includeRootFolder: false
         archiveType: 'zip'
         archiveFile: '$(Build.ArtifactStagingDirectory)/backend.zip'
         replaceExistingArchive: true
-    - publish: '$(Build.ArtifactStagingDirectory)/backend.zip'
-      artifact: backend-dist
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)/backend.zip'
+        artifact: 'backend-dist'
 
   - job: BuildFrontend
+    displayName: Build Frontend
     steps:
     - checkout: self
     - script: |
-        cd frontend
-        npm ci
-        npm run build
-      displayName: 'Build Frontend'
+        echo "Listing repo root:"
+        ls -la
+        echo "Listing TP5/frontend folder:"
+        ls -la TP5/frontend || true
+      displayName: 'Repo diagnostics'
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '18.x'
+      displayName: 'Use Node 18'
+    - script: |
+        if [ -d "TP5/frontend" ]; then
+          cd TP5/frontend
+          echo "Working in $(pwd)"
+          npm ci || npm install
+          npm run build
+        else
+          echo "ERROR: TP5/frontend not found"
+          exit 1
+        fi
+      displayName: 'Install & build Frontend'
+      failOnStderr: false
     - task: ArchiveFiles@2
       inputs:
-        rootFolderOrFile: 'frontend/build'
+        rootFolderOrFile: 'TP5/frontend/build'
         includeRootFolder: false
         archiveType: 'zip'
         archiveFile: '$(Build.ArtifactStagingDirectory)/frontend.zip'
         replaceExistingArchive: true
-    - publish: '$(Build.ArtifactStagingDirectory)/frontend.zip'
-      artifact: frontend-dist
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)/frontend.zip'
+        artifact: 'frontend-dist'
 
 - stage: Deploy_QA
+  displayName: Deploy to QA
   dependsOn: Build
   jobs:
   - deployment: DeployBackendQA
@@ -62,6 +104,7 @@ stages:
           - download: current
             artifact: backend-dist
           - task: AzureWebApp@1
+            displayName: 'Deploy backend to QA (Linux)'
             inputs:
               azureSubscription: '$(azureSubscription)'
               appType: 'webAppLinux'
@@ -77,6 +120,7 @@ stages:
           - download: current
             artifact: frontend-dist
           - task: AzureWebApp@1
+            displayName: 'Deploy frontend to QA (Linux)'
             inputs:
               azureSubscription: '$(azureSubscription)'
               appType: 'webAppLinux'
@@ -84,6 +128,7 @@ stages:
               package: '$(Pipeline.Workspace)/frontend-dist/frontend.zip'
 
 - stage: Deploy_PROD
+  displayName: Deploy to PROD
   dependsOn: Deploy_QA
   condition: succeeded()
   jobs:
@@ -96,6 +141,7 @@ stages:
           - download: current
             artifact: backend-dist
           - task: AzureWebApp@1
+            displayName: 'Deploy backend to PROD (Linux)'
             inputs:
               azureSubscription: '$(azureSubscription)'
               appType: 'webAppLinux'
@@ -111,6 +157,7 @@ stages:
           - download: current
             artifact: frontend-dist
           - task: AzureWebApp@1
+            displayName: 'Deploy frontend to PROD (Linux)'
             inputs:
               azureSubscription: '$(azureSubscription)'
               appType: 'webAppLinux'
