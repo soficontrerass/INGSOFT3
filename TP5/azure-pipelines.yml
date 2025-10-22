@@ -61,26 +61,16 @@ stages:
       vmImage: 'ubuntu-latest'
     steps:
     - checkout: self
-    - script: |
-        echo "Listing TP5/frontend folder:"
-        ls -la TP5/frontend || true
-      displayName: 'Repo diagnostics'
     - task: NodeTool@0
       inputs:
         versionSpec: '18.x'
       displayName: 'Use Node 18'
     - script: |
-        if [ -d "TP5/frontend" ]; then
-          cd TP5/frontend
-          echo "Working in $(pwd)"
-          # asegurar instalación de devDependencies (react-scripts)
-          export NODE_ENV=development
-          npm ci --include=dev --legacy-peer-deps || npm install --include=dev || npm install
-          npm run build
-        else
-          echo "ERROR: TP5/frontend not found"
-          exit 1
-        fi
+        cd TP5/frontend
+        echo "PWD: $(pwd)"
+        # instalar todas las dependencias (incl. devDeps) y evitar fallos por peer deps
+        npm install --legacy-peer-deps --no-audit --no-fund
+        npm run build
       displayName: 'Install & build Frontend'
       failOnStderr: false
     - task: ArchiveFiles@2
