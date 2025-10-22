@@ -1,0 +1,118 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  azureSubscription: 'tp5-azure-connection'      # <- reemplazar si tu service connection tiene otro nombre
+  resourceGroup: 'tp5-ingsoft3-2025'
+  backendAppQA: 'tp5-backend-qa-soficontrerass'
+  backendAppPROD: 'tp5-backend-prod-soficontrerass'
+  frontendAppQA: 'tp5-frontend-qa-soficontrerass'
+  frontendAppPROD: 'tp5-frontend-prod-soficontrerass'
+
+stages:
+- stage: Build
+  jobs:
+  - job: BuildBackend
+    steps:
+    - checkout: self
+    - script: |
+        cd backend
+        npm ci
+      displayName: 'Install Backend'
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: 'backend'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/backend.zip'
+        replaceExistingArchive: true
+    - publish: '$(Build.ArtifactStagingDirectory)/backend.zip'
+      artifact: backend-dist
+
+  - job: BuildFrontend
+    steps:
+    - checkout: self
+    - script: |
+        cd frontend
+        npm ci
+        npm run build
+      displayName: 'Build Frontend'
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: 'frontend/build'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/frontend.zip'
+        replaceExistingArchive: true
+    - publish: '$(Build.ArtifactStagingDirectory)/frontend.zip'
+      artifact: frontend-dist
+
+- stage: Deploy_QA
+  dependsOn: Build
+  jobs:
+  - deployment: DeployBackendQA
+    environment: 'QA'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: backend-dist
+          - task: AzureWebApp@1
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appType: 'webAppLinux'
+              appName: '$(backendAppQA)'
+              package: '$(Pipeline.Workspace)/backend-dist/backend.zip'
+
+  - deployment: DeployFrontendQA
+    environment: 'QA'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: frontend-dist
+          - task: AzureWebApp@1
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appType: 'webAppLinux'
+              appName: '$(frontendAppQA)'
+              package: '$(Pipeline.Workspace)/frontend-dist/frontend.zip'
+
+- stage: Deploy_PROD
+  dependsOn: Deploy_QA
+  condition: succeeded()
+  jobs:
+  - deployment: DeployBackendPROD
+    environment: 'PROD'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: backend-dist
+          - task: AzureWebApp@1
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appType: 'webAppLinux'
+              appName: '$(backendAppPROD)'
+              package: '$(Pipeline.Workspace)/backend-dist/backend.zip'
+
+  - deployment: DeployFrontendPROD
+    environment: 'PROD'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: frontend-dist
+          - task: AzureWebApp@1
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appType: 'webAppLinux'
+              appName: '$(frontendAppPROD)'
+              package: '$(Pipeline.Workspace)/frontend-dist/frontend.zip'
