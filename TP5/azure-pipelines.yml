@@ -5,7 +5,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  azureSubscription: 'tp5-azure-connection'      # <- cambia por tu Service Connection
+  azureSubscription: 'tp5-azure-connection'
   resourceGroup: 'tp5-ingsoft3-2025'
   backendAppQA: 'tp5-backend-qa-soficontrerass'
   backendAppPROD: 'tp5-backend-prod-soficontrerass'
@@ -18,6 +18,8 @@ stages:
   jobs:
   - job: BuildBackend
     displayName: Build Backend
+    pool:
+      vmImage: 'ubuntu-latest'
     steps:
     - checkout: self
     - script: |
@@ -34,7 +36,7 @@ stages:
         if [ -d "TP5/backend" ]; then
           cd TP5/backend
           echo "Working in $(pwd)"
-          npm ci || npm install
+          npm ci --legacy-peer-deps || npm install
         else
           echo "ERROR: TP5/backend not found"
           exit 1
@@ -53,43 +55,53 @@ stages:
         targetPath: '$(Build.ArtifactStagingDirectory)/backend.zip'
         artifact: 'backend-dist'
 
-- job: BuildFrontend
-  displayName: Build Frontend
-  steps:
-  - checkout: self
-  - script: |
-      echo "Listing TP5/frontend:"
-      ls -la TP5/frontend || true
-    displayName: 'Repo diagnostics'
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '18.x'
-    displayName: 'Use Node 18'
-  - script: |
-      cd TP5/frontend
-      # asegurarse de que devDependencies se instalen
-      export NODE_ENV=development
-      npm ci --include=dev || npm install --include=dev || npm install
-      npm run build
-    displayName: 'Install & build Frontend'
-    failOnStderr: false
-  - task: ArchiveFiles@2
-    inputs:
-      rootFolderOrFile: 'TP5/frontend/build'
-      includeRootFolder: false
-      archiveType: 'zip'
-      archiveFile: '$(Build.ArtifactStagingDirectory)/frontend.zip'
-      replaceExistingArchive: true
-  - task: PublishPipelineArtifact@1
-    inputs:
-      targetPath: '$(Build.ArtifactStagingDirectory)/frontend.zip'
-      artifact: 'frontend-dist'
+  - job: BuildFrontend
+    displayName: Build Frontend
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - checkout: self
+    - script: |
+        echo "Listing TP5/frontend folder:"
+        ls -la TP5/frontend || true
+      displayName: 'Repo diagnostics'
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '18.x'
+      displayName: 'Use Node 18'
+    - script: |
+        if [ -d "TP5/frontend" ]; then
+          cd TP5/frontend
+          echo "Working in $(pwd)"
+          # asegurar instalación de devDependencies (react-scripts)
+          export NODE_ENV=development
+          npm ci --include=dev --legacy-peer-deps || npm install --include=dev || npm install
+          npm run build
+        else
+          echo "ERROR: TP5/frontend not found"
+          exit 1
+        fi
+      displayName: 'Install & build Frontend'
+      failOnStderr: false
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: 'TP5/frontend/build'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/frontend.zip'
+        replaceExistingArchive: true
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)/frontend.zip'
+        artifact: 'frontend-dist'
 
 - stage: Deploy_QA
   displayName: Deploy to QA
   dependsOn: Build
+  condition: succeeded()
   jobs:
   - deployment: DeployBackendQA
+    displayName: Deploy Backend QA
     environment: 'QA'
     strategy:
       runOnce:
@@ -106,6 +118,7 @@ stages:
               package: '$(Pipeline.Workspace)/backend-dist/backend.zip'
 
   - deployment: DeployFrontendQA
+    displayName: Deploy Frontend QA
     environment: 'QA'
     strategy:
       runOnce:
@@ -127,6 +140,7 @@ stages:
   condition: succeeded()
   jobs:
   - deployment: DeployBackendPROD
+    displayName: Deploy Backend PROD
     environment: 'PROD'
     strategy:
       runOnce:
@@ -143,6 +157,7 @@ stages:
               package: '$(Pipeline.Workspace)/backend-dist/backend.zip'
 
   - deployment: DeployFrontendPROD
+    displayName: Deploy Frontend PROD
     environment: 'PROD'
     strategy:
       runOnce:
