@@ -89,6 +89,8 @@ stages:
   displayName: Deploy to QA
   dependsOn: Build
   condition: succeeded()
+  variables:
+    - group: tp5-qa
   jobs:
   - deployment: DeployBackendQA
     displayName: Deploy Backend QA
@@ -106,6 +108,25 @@ stages:
               appType: 'webAppLinux'
               appName: '$(backendAppQA)'
               package: '$(Pipeline.Workspace)/backend-dist/backend.zip'
+          - task: AzureCLI@2
+            displayName: 'Set backend app settings (QA)'
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az webapp config appsettings set -g $(resourceGroup) -n $(backendAppQA) --settings DB_CONN="$(DB_CONN)" BACKEND_URL="$(BACKEND_URL)" NODE_ENV="$(NODE_ENV)"
+          
+          - script: |
+              echo "Health check backend QA → $(BACKEND_URL)/health"
+              for i in {1..12}; do
+                status=$(curl -s -o /dev/null -w "%{http_code}" "$(BACKEND_URL)/health")
+                echo "Attempt $i: $status"
+                if [ "$status" = "200" ]; then echo "Health OK"; exit 0; fi
+                sleep 5
+              done
+              echo "Health check failed"; exit 1
+            displayName: 'Health check backend QA'
 
   - deployment: DeployFrontendQA
     displayName: Deploy Frontend QA
@@ -123,11 +144,33 @@ stages:
               appType: 'webAppLinux'
               appName: '$(frontendAppQA)'
               package: '$(Pipeline.Workspace)/frontend-dist/frontend.zip'
+              
+          - task: AzureCLI@2
+            displayName: 'Set frontend app settings (QA)'
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az webapp config appsettings set -g $(resourceGroup) -n $(frontendAppQA) --settings FRONTEND_URL="$(FRONTEND_URL)" BACKEND_URL="$(BACKEND_URL)" NODE_ENV="$(NODE_ENV)"
+
+          - script: |
+              echo "Health check frontend QA → $(FRONTEND_URL)"
+              for i in {1..12}; do
+                status=$(curl -s -o /dev/null -w "%{http_code}" "$(FRONTEND_URL)")
+                echo "Attempt $i: $status"
+                if [ "$status" = "200" ]; then echo "Health OK"; exit 0; fi
+                sleep 5
+              done
+              echo "Health check failed"; exit 1
+            displayName: 'Health check frontend QA'
 
 - stage: Deploy_PROD
   displayName: Deploy to PROD
   dependsOn: Deploy_QA
   condition: succeeded()
+  variables:
+    - group: tp5-prod
   jobs:
   - deployment: DeployBackendPROD
     displayName: Deploy Backend PROD
@@ -146,6 +189,23 @@ stages:
               appName: '$(backendAppPROD)'
               package: '$(Pipeline.Workspace)/backend-dist/backend.zip'
 
+          - task: AzureCLI@2
+            displayName: 'Set backend app settings (PROD)'
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az webapp config appsettings set -g $(resourceGroup) -n $(backendAppPROD) --settings DB_CONN="$(DB_CONN)" BACKEND_URL="$(BACKEND_URL)" NODE_ENV="$(NODE_ENV)"
+
+          - script: |
+              echo "Health check backend PROD → $(BACKEND_URL)/health"
+              for i in {1..12}; do
+                status=$(curl -s -o /dev/null -w "%{http_code}" "$(BACKEND_URL)/health")
+                echo "Attempt $i: $status"
+                if [ "$status" = "200" ]; then echo "Health OK"; exit 0; fi
+                sleep 5
+
   - deployment: DeployFrontendPROD
     displayName: Deploy Frontend PROD
     environment: 'PROD'
@@ -162,3 +222,22 @@ stages:
               appType: 'webAppLinux'
               appName: '$(frontendAppPROD)'
               package: '$(Pipeline.Workspace)/frontend-dist/frontend.zip'
+          - task: AzureCLI@2
+            displayName: 'Set frontend app settings (PROD)'
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az webapp config appsettings set -g $(resourceGroup) -n $(frontendAppPROD) --settings FRONTEND_URL="$(FRONTEND_URL)" BACKEND_URL="$(BACKEND_URL)" NODE_ENV="$(NODE_ENV)"
+
+          - script: |
+              echo "Health check frontend PROD → $(FRONTEND_URL)"
+              for i in {1..12}; do
+                status=$(curl -s -o /dev/null -w "%{http_code}" "$(FRONTEND_URL)")
+                echo "Attempt $i: $status"
+                if [ "$status" = "200" ]; then echo "Health OK"; exit 0; fi
+                sleep 5
+              done
+              echo "Health check failed"; exit 1
+            displayName: 'Health check frontend PROD'
