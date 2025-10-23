@@ -37,4 +37,4 @@ app.get('/api/messages', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`Servidor escuchando en ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Servidor escuchando en ${PORT}`));
