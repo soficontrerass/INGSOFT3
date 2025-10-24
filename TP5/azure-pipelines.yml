@@ -78,14 +78,14 @@ stages:
         cd TP5/frontend
         npm ci --no-audit --no-fund
 
-        # Ensure artifact staging exists
-        mkdir -p $(Build.ArtifactStagingDirectory)
+        # Ensure artifact staging exists (absolute path)
+        mkdir -p "$(Build.ArtifactStagingDirectory)"
 
-        # Build QA (uses BACKEND_URL from tp5-qa group)
-        echo "Building frontend for QA with BACKEND_URL=$(BACKEND_URL)"
-        REACT_APP_BACKEND_URL="$(BACKEND_URL)" npm run build
+        # Build QA (uses BACKEND_URL_QA from tp5-qa group)
+        echo "Building frontend for QA with BACKEND_URL_QA=$(BACKEND_URL_QA)"
+        REACT_APP_BACKEND_URL="$(BACKEND_URL_QA)" npm run build
         cd build
-        zip -r ../../$(Build.ArtifactStagingDirectory)/frontend-qa.zip .
+        zip -r "$(Build.ArtifactStagingDirectory)/frontend-qa.zip" .
         cd ..
 
         # Clean and build PROD (uses BACKEND_URL_PROD from tp5-prod group)
@@ -93,8 +93,7 @@ stages:
         echo "Building frontend for PROD with BACKEND_URL_PROD=$(BACKEND_URL_PROD)"
         REACT_APP_BACKEND_URL="$(BACKEND_URL_PROD)" npm run build
         cd build
-        zip -r ../../$(Build.ArtifactStagingDirectory)/frontend-prod.zip .
-      displayName: 'Install & build Frontend for QA and PROD'
+        zip -r "$(Build.ArtifactStagingDirectory)/frontend-prod.zip" .
       failOnStderr: false
 
     - task: PublishPipelineArtifact@1
