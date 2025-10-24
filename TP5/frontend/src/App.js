@@ -2,28 +2,32 @@ import React, { useState } from 'react';
 
 function App() {
   const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const getMessages = async () => {
+    setLoading(true);
     try {
-      const res = await fetch('http://localhost:3001/api/messages');
+      const base = process.env.REACT_APP_BACKEND_URL || '';
+      const url = base ? `${base.replace(/\/$/, '')}/api/messages` : '/api/messages';
+      const res = await fetch(url);
       const data = await res.json();
-      setMessages(data.messages);
-    } catch (error) {
+      setMessages(data.messages || []);
+    } catch (err) {
       setMessages(['Error al conectar con el backend']);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div>
+    <div style={{ padding: 20 }}>
       <h1>TP4 Frontend</h1>
-      <button onClick={getMessages}>Obtener mensajes del backend</button>
+      <button onClick={getMessages} disabled={loading}>
+        {loading ? 'Cargando...' : 'Obtener mensajes del backend'}
+      </button>
       <ul>
-        {messages.map((msg, idx) => (
-          <li key={idx}>{msg}</li>
-        ))}
+        {messages.map((m, i) => <li key={i}>{m}</li>)}
       </ul>
-      <p>¡Prueba workflow!</p>
-      <p>Ultima prueba antes de la presentacion</p>
     </div>
   );
 }
