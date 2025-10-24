@@ -23,6 +23,9 @@ variables:
 stages:
 - stage: Build
   displayName: Build
+  variables:
+    - group: tp5-qa     # contiene BACKEND_URL_QA
+    - group: tp5-prod   # contains BACKEND_URL_PROD
   jobs:
   - job: BuildBackend
     displayName: Build Backend
