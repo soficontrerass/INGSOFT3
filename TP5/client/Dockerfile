@@ -3,6 +3,7 @@ FROM node:18 AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
+RUN npm ci || npm install --no-audit --no-fund
 COPY . .
 RUN npm run build
 
