@@ -50,14 +50,24 @@ jobs:
     needs: debug
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+
       - name: Install dependencies (client)
-        run: npm ci --prefix TP5/client
+        run: npm install --prefix TP5/client
+
+      - name: Rebuild native deps (client)
+        run: |
+          npm rebuild --prefix TP5/client || true
+          # Fallback: install platform-specific rollup native package if still missing
+          npm install @rollup/rollup-linux-x64-gnu --prefix TP5/client --no-save || true
+
       - name: Build (client)
         run: npm run build --prefix TP5/client
+
       - name: Upload client artifact
         uses: actions/upload-artifact@v4
         with:
