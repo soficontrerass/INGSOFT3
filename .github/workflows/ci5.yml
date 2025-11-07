@@ -4,11 +4,11 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'tp5/**'
+      - 'Tp5/**'
   pull_request:
     branches: [ main ]
     paths:
-      - 'tp5/**'
+      - 'Tp5/**'
   workflow_dispatch: {}
 
 jobs:
@@ -35,14 +35,14 @@ jobs:
         with:
           node-version: '18'
       - name: Install dependencies (server)
-        run: npm ci --prefix tp5/server
+        run: npm ci --prefix Tp5/server
       - name: Build (server)
-        run: npm run build --prefix tp5/server
+        run: npm run build --prefix Tp5/server
       - name: Upload server artifact
         uses: actions/upload-artifact@v4
         with:
           name: server-dist
-          path: tp5/server/dist
+          path: Tp5/server/dist
 
   client-build:
     name: Build Client
@@ -55,11 +55,11 @@ jobs:
         with:
           node-version: '18'
       - name: Install dependencies (client)
-        run: npm ci --prefix tp5/client
+        run: npm ci --prefix Tp5/client
       - name: Build (client)
-        run: npm run build --prefix tp5/client
+        run: npm run build --prefix Tp5/client
       - name: Upload client artifact
         uses: actions/upload-artifact@v4
         with:
           name: client-dist
-          path: tp5/client/dist
+          path: Tp5/client/dist
