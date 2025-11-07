@@ -33,13 +33,11 @@ jobs:
       - name: Build & push server image
         run: |
           SERVER_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
-          echo "Building and pushing ${SERVER_IMAGE}"
           gcloud builds submit TP5/server --tag "${SERVER_IMAGE}" --project "$PROJECT" --region "$REGION"
 
       - name: Build & push client image
         run: |
           CLIENT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
-          echo "Building and pushing ${CLIENT_IMAGE}"
           gcloud builds submit TP5/client --tag "${CLIENT_IMAGE}" --project "$PROJECT" --region "$REGION"
 
       - name: Deploy server to Cloud Run
