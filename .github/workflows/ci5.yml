@@ -12,33 +12,32 @@ on:
   workflow_dispatch: {}
 
 jobs:
+  debug:
+    name: Debug workspace
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show workspace path
+        run: |
+          echo "GITHUB_WORKSPACE=${{ github.workspace }}"
+          ls -la "${{ github.workspace }}"
+          echo "List repo root recursive (first 3 levels)"
+          find "${{ github.workspace }}" -maxdepth 3 -type d -print || true
+
   server-build:
     name: Build Server
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: tp5/server
+    needs: debug
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-
-      - name: Cache server node_modules
-        uses: actions/cache@v4
-        with:
-          path: tp5/server/node_modules
-          key: ${{ runner.os }}-server-${{ hashFiles('tp5/server/package-lock.json') }}
-
       - name: Install dependencies (server)
-        run: npm ci
-
+        run: npm ci --prefix tp5/server
       - name: Build (server)
-        run: npm run build
-
+        run: npm run build --prefix tp5/server
       - name: Upload server artifact
         uses: actions/upload-artifact@v4
         with:
@@ -48,30 +47,17 @@ jobs:
   client-build:
     name: Build Client
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: tp5/client
+    needs: debug
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-
-      - name: Cache client node_modules
-        uses: actions/cache@v4
-        with:
-          path: tp5/client/node_modules
-          key: ${{ runner.os }}-client-${{ hashFiles('tp5/client/package-lock.json') }}
-
       - name: Install dependencies (client)
-        run: npm ci
-
+        run: npm ci --prefix tp5/client
       - name: Build (client)
-        run: npm run build
-
+        run: npm run build --prefix tp5/client
       - name: Upload client artifact
         uses: actions/upload-artifact@v4
         with:
