@@ -1,0 +1,79 @@
+name: TP5 CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'tp5/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'tp5/**'
+  workflow_dispatch: {}
+
+jobs:
+  server-build:
+    name: Build Server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tp5/server
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Cache server node_modules
+        uses: actions/cache@v4
+        with:
+          path: tp5/server/node_modules
+          key: ${{ runner.os }}-server-${{ hashFiles('tp5/server/package-lock.json') }}
+
+      - name: Install dependencies (server)
+        run: npm ci
+
+      - name: Build (server)
+        run: npm run build
+
+      - name: Upload server artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-dist
+          path: tp5/server/dist
+
+  client-build:
+    name: Build Client
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tp5/client
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Cache client node_modules
+        uses: actions/cache@v4
+        with:
+          path: tp5/client/node_modules
+          key: ${{ runner.os }}-client-${{ hashFiles('tp5/client/package-lock.json') }}
+
+      - name: Install dependencies (client)
+        run: npm ci
+
+      - name: Build (client)
+        run: npm run build
+
+      - name: Upload client artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-dist
+          path: tp5/client/dist
