@@ -1,0 +1,76 @@
+name: Deploy TP5 to Cloud Run
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'TP5/**'
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      REPO: tp5-repo
+      PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+      REGION: ${{ secrets.GCP_REGION }}
+      SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          export_default_credentials: true
+
+      - name: Enable required APIs (no-op if already enabled)
+        run: |
+          gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project "$PROJECT"
+
+      - name: Build & push server image
+        run: |
+          SERVER_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
+          echo "Building and pushing ${SERVER_IMAGE}"
+          gcloud builds submit TP5/server --tag "${SERVER_IMAGE}" --project "$PROJECT" --region "$REGION"
+
+      - name: Build & push client image
+        run: |
+          CLIENT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
+          echo "Building and pushing ${CLIENT_IMAGE}"
+          gcloud builds submit TP5/client --tag "${CLIENT_IMAGE}" --project "$PROJECT" --region "$REGION"
+
+      - name: Deploy server to Cloud Run
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
+          gcloud run deploy tp5-server \
+            --image "${IMAGE}" \
+            --region "${REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars FORECAST_COUNT=5 \
+            --project "$PROJECT"
+
+      - name: Deploy client to Cloud Run (optional)
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
+          gcloud run deploy tp5-client \
+            --image "${IMAGE}" \
+            --region "${REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --project "$PROJECT"
+
+      - name: Smoke test server
+        run: |
+          URL=$(gcloud run services describe tp5-server --region "$REGION" --project "$PROJECT" --format='value(status.url)')
+          echo "Server URL: $URL"
+          curl --fail --retry 5 --retry-delay 2 "$URL/health"
+
+      - name: Smoke test client
+        run: |
+          URL=$(gcloud run services describe tp5-client --region "$REGION" --project "$PROJECT" --format='value(status.url)')
+          echo "Client URL: $URL"
+          curl --fail --retry 5 --retry-delay 2 "$URL" || true
