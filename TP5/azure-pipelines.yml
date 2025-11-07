@@ -138,12 +138,12 @@ stages:
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
-                az webapp config appsettings set -g $(resourceGroup) -n $(backendAppQA) --settings DB_CONN="$(DB_CONN)" BACKEND_URL="$(BACKEND_URL)" NODE_ENV="$(NODE_ENV)"
+                  az webapp config appsettings set -g $(resourceGroup) -n $(backendAppQA) --settings DB_CONN="$(DB_CONN)" BACKEND_URL="$(BACKEND_URL_QA)" NODE_ENV="$(NODE_ENV)"
           
           - script: |
-              echo "Health check backend QA → $(BACKEND_URL)/health"
+              echo "Health check backend QA → $(BACKEND_URL_QA)/health"
               for i in {1..12}; do
-                status=$(curl -s -o /dev/null -w "%{http_code}" "$(BACKEND_URL)/health")
+                status=$(curl -s -o /dev/null -w "%{http_code}" "$(BACKEND_URL_QA)/health")
                 echo "Attempt $i: $status"
                 if [ "$status" = "200" ]; then echo "Health OK"; exit 0; fi
                 sleep 5
@@ -175,8 +175,7 @@ stages:
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
-                az webapp config appsettings set -g $(resourceGroup) -n $(frontendAppQA) --settings FRONTEND_URL="$(FRONTEND_URL)" BACKEND_URL="$(BACKEND_URL)" NODE_ENV="$(NODE_ENV)"
-
+                  az webapp config appsettings set -g $(resourceGroup) -n $(frontendAppQA) --settings FRONTEND_URL="$(FRONTEND_URL)" BACKEND_URL="$(BACKEND_URL_QA)" NODE_ENV="$(NODE_ENV)"
           - script: |
               echo "Health check frontend QA → $(FRONTEND_URL)"
               for i in {1..12}; do
@@ -219,12 +218,12 @@ stages:
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
-                az webapp config appsettings set -g $(resourceGroup) -n $(backendAppPROD) --settings DB_CONN="$(DB_CONN)" BACKEND_URL="$(BACKEND_URL)" NODE_ENV="$(NODE_ENV)"
+                az webapp config appsettings set -g $(resourceGroup) -n $(backendAppPROD) --settings DB_CONN="$(DB_CONN)" BACKEND_URL="$(BACKEND_URL_PROD)" NODE_ENV="$(NODE_ENV)"
 
           - script: |
-              echo "Health check backend PROD → $(BACKEND_URL)/health"
+              echo "Health check backend PROD → $(BACKEND_URL_PROD)/health"
               for i in {1..12}; do
-                status=$(curl -s -o /dev/null -w "%{http_code}" "$(BACKEND_URL)/health")
+                status=$(curl -s -o /dev/null -w "%{http_code}" "$(BACKEND_URL_PROD)/health")
                 echo "Attempt $i: $status"
                 if [ "$status" = "200" ]; then
                   echo "Health OK"
@@ -259,7 +258,7 @@ stages:
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
-                az webapp config appsettings set -g $(resourceGroup) -n $(frontendAppPROD) --settings FRONTEND_URL="$(FRONTEND_URL)" BACKEND_URL="$(BACKEND_URL)" NODE_ENV="$(NODE_ENV)"
+                az webapp config appsettings set -g $(resourceGroup) -n $(frontendAppPROD) --settings FRONTEND_URL="$(FRONTEND_URL)" BACKEND_URL="$(BACKEND_URL_PROD)" NODE_ENV="$(NODE_ENV)"
 
           - script: |
               echo "Health check frontend PROD → $(FRONTEND_URL)"
