@@ -53,21 +53,17 @@ jobs:
           SERVER_URL=$(gcloud run services describe tp5-server --region "$REGION" --project "$PROJECT" --format='value(status.url)')
           echo "SERVER_URL=$SERVER_URL" >> $GITHUB_OUTPUT
 
-      - name: Build client on runner with server URL
-        run: |
-          cd TP5/client
-          echo "Building client with API=${{ steps.get-server.outputs.SERVER_URL }}"
-          # remove windows lock + node_modules so npm will regenerate linux-friendly lock
-          rm -rf package-lock.json node_modules
-          VITE_API_URL="${{ steps.get-server.outputs.SERVER_URL }}" npm install
-          VITE_API_URL="${{ steps.get-server.outputs.SERVER_URL }}" npm run build
-        env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
-
-      - name: Build & push client image (includes dist)
+      - name: Build & push client image (docker build + push)
         run: |
           CLIENT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
-          gcloud builds submit TP5/client --tag "${CLIENT_IMAGE}" --project "$PROJECT" --region "$REGION"
+          echo "Building client image ${CLIENT_IMAGE} with API=${{ steps.get-server.outputs.SERVER_URL }}"
+          # configure docker to push to Artifact Registry
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          # build image locally, passing server URL as build-arg
+          docker build --build-arg VITE_API_URL="${{ steps.get-server.outputs.SERVER_URL }}" -t "${CLIENT_IMAGE}" TP5/client
+          docker push "${CLIENT_IMAGE}"
+        env:
+          CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
 
       - name: Deploy client to Cloud Run
         run: |
