@@ -15,14 +15,14 @@ env:
 
 jobs:
   build:
-    name: Build & push images
+    name: Build & push images (QA credentials)
     runs-on: ubuntu-latest
     environment: qa
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Debug - verify secret is available
+      - name: Debug - verify qa secret available
         env:
           GCP_SA_KEY_QA: ${{ secrets.GCP_SA_KEY_QA }}
         run: |
@@ -49,10 +49,10 @@ jobs:
           echo "Building and pushing ${SERVER_IMAGE}"
           gcloud builds submit TP5/server --tag "${SERVER_IMAGE}" --project "$PROJECT" --region "$REGION"
 
-      - name: Get server URL (temporary for client build)
+      - name: Get server URL (temporary, may be empty on first run)
         id: get-server
         run: |
-          SERVER_URL=$(gcloud run services describe tp5-server --region "$REGION" --project "$PROJECT" --format='value(status.url)' || echo "")
+          SERVER_URL=$(gcloud run services describe tp5-server-qa --region "$REGION" --project "$PROJECT" --format='value(status.url)' || echo "")
           echo "SERVER_URL=$SERVER_URL" >> $GITHUB_OUTPUT
 
       - name: Build & push client image
@@ -60,6 +60,8 @@ jobs:
           CLIENT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
           echo "Building client image ${CLIENT_IMAGE} with API=${{ steps.get-server.outputs.SERVER_URL }}"
           gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          # If SERVER_URL is empty, the client will be built with an empty VITE_API_URL;
+          # deploy-qa will redeploy client with correct env if needed.
           docker build --build-arg VITE_API_URL="${{ steps.get-server.outputs.SERVER_URL }}" -t "${CLIENT_IMAGE}" TP5/client
           docker push "${CLIENT_IMAGE}"
         env:
@@ -73,12 +75,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Debug - verify qa secret available
+        env:
+          GCP_SA_KEY_QA: ${{ secrets.GCP_SA_KEY_QA }}
+        run: |
+          if [ -z "$GCP_SA_KEY_QA" ]; then
+            echo "ERROR: GCP_SA_KEY_QA is empty or not available in this job"; exit 1
+          else
+            echo "GCP_SA_KEY_QA is present"
+          fi
+
       - name: Authenticate to GCP (QA)
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY_QA }}
 
-      - name: Setup gcloud CLI
+      - name: Setup gcloud CLI (QA)
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
@@ -95,14 +107,20 @@ jobs:
             --set-env-vars FORECAST_COUNT=5 \
             --project "$PROJECT"
 
-      - name: Deploy client QA
+      - name: Deploy client QA (set VITE_API_URL to QA server URL)
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
+          SERVER_URL=$(gcloud run services describe tp5-server-qa --region "$REGION" --project "$PROJECT" --format='value(status.url)')
+          echo "QA server URL: $SERVER_URL"
+          # Re-build client locally in runner only if needed to inject API URL into static bundle.
+          # Simpler: deploy container image with env var CLIENT_API set for runtime, if client reads env at runtime.
+          # Here we set CLIENT_URL env var for server and rely on client having built with correct VITE_API_URL earlier if present.
           gcloud run deploy tp5-client-qa \
             --image "${IMAGE}" \
             --region "${REGION}" \
             --platform managed \
             --allow-unauthenticated \
+            --set-env-vars VITE_API_URL="$SERVER_URL" \
             --project "$PROJECT"
 
       - name: Smoke test QA
@@ -120,12 +138,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Debug - verify prod secret available
+        env:
+          GCP_SA_KEY_PROD: ${{ secrets.GCP_SA_KEY_PROD }}
+        run: |
+          if [ -z "$GCP_SA_KEY_PROD" ]; then
+            echo "ERROR: GCP_SA_KEY_PROD is empty or not available in this job"; exit 1
+          else
+            echo "GCP_SA_KEY_PROD is present"
+          fi
+
       - name: Authenticate to GCP (PROD)
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY_PROD }}
 
-      - name: Setup gcloud CLI
+      - name: Setup gcloud CLI (PROD)
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
@@ -139,7 +167,7 @@ jobs:
             --region "${REGION}" \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars FORECAST_COUNT=5,CLIENT_URL="https://tp5-client-366o626kia-uc.a.run.app" \
+            --set-env-vars FORECAST_COUNT=10,CLIENT_URL="https://tp5-client-366o626kia-uc.a.run.app" \
             --project "$PROJECT"
 
       - name: Deploy client PROD
@@ -150,6 +178,7 @@ jobs:
             --region "${REGION}" \
             --platform managed \
             --allow-unauthenticated \
+            --set-env-vars VITE_API_URL="https://tp5-server-366o626kia-uc.a.run.app" \
             --project "$PROJECT"
 
       - name: Smoke test PROD
