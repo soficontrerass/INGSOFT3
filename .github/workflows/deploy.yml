@@ -57,7 +57,9 @@ jobs:
         run: |
           cd TP5/client
           echo "Building client with API=${{ steps.get-server.outputs.SERVER_URL }}"
-          VITE_API_URL="${{ steps.get-server.outputs.SERVER_URL }}" npm ci
+          # remove windows lock + node_modules so npm will regenerate linux-friendly lock
+          rm -rf package-lock.json node_modules
+          VITE_API_URL="${{ steps.get-server.outputs.SERVER_URL }}" npm install
           VITE_API_URL="${{ steps.get-server.outputs.SERVER_URL }}" npm run build
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
