@@ -7,22 +7,24 @@ on:
       - 'TP5/**'
   workflow_dispatch: {}
 
+env:
+  REPO: tp5-repo
+  PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: ${{ secrets.GCP_REGION }}
+  SHA: ${{ github.sha }}
+
 jobs:
-  deploy:
+  build:
+    name: Build & push images
     runs-on: ubuntu-latest
-    env:
-      REPO: tp5-repo
-      PROJECT: ${{ secrets.GCP_PROJECT_ID }}
-      REGION: ${{ secrets.GCP_REGION }}
-      SHA: ${{ github.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Authenticate to GCP
+      - name: Authenticate to GCP (build)
         uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          credentials_json: ${{ secrets.GCP_SA_KEY_QA }}
 
       - name: Setup gcloud CLI
         uses: google-github-actions/setup-gcloud@v1
@@ -36,10 +38,45 @@ jobs:
           echo "Building and pushing ${SERVER_IMAGE}"
           gcloud builds submit TP5/server --tag "${SERVER_IMAGE}" --project "$PROJECT" --region "$REGION"
 
-      - name: Deploy server to Cloud Run
+      - name: Get server URL (temporary for client build)
+        id: get-server
+        run: |
+          SERVER_URL=$(gcloud run services describe tp5-server --region "$REGION" --project "$PROJECT" --format='value(status.url)' || echo "")
+          echo "SERVER_URL=$SERVER_URL" >> $GITHUB_OUTPUT
+
+      - name: Build & push client image
+        run: |
+          CLIENT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
+          echo "Building client image ${CLIENT_IMAGE} with API=${{ steps.get-server.outputs.SERVER_URL }}"
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker build --build-arg VITE_API_URL="${{ steps.get-server.outputs.SERVER_URL }}" -t "${CLIENT_IMAGE}" TP5/client
+          docker push "${CLIENT_IMAGE}"
+        env:
+          CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
+
+  deploy-qa:
+    name: Deploy to QA (automatic)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP (QA)
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_QA }}
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          version: 'latest'
+
+      - name: Deploy server QA
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
-          gcloud run deploy tp5-server \
+          gcloud run deploy tp5-server-qa \
             --image "${IMAGE}" \
             --region "${REGION}" \
             --platform managed \
@@ -47,25 +84,54 @@ jobs:
             --set-env-vars FORECAST_COUNT=5 \
             --project "$PROJECT"
 
-      - name: Get server URL
-        id: get-server
+      - name: Deploy client QA
         run: |
-          SERVER_URL=$(gcloud run services describe tp5-server --region "$REGION" --project "$PROJECT" --format='value(status.url)')
-          echo "SERVER_URL=$SERVER_URL" >> $GITHUB_OUTPUT
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
+          gcloud run deploy tp5-client-qa \
+            --image "${IMAGE}" \
+            --region "${REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --project "$PROJECT"
 
-      - name: Build & push client image (docker build + push)
+      - name: Smoke test QA
         run: |
-          CLIENT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
-          echo "Building client image ${CLIENT_IMAGE} with API=${{ steps.get-server.outputs.SERVER_URL }}"
-          # configure docker to push to Artifact Registry
-          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
-          # build image locally, passing server URL as build-arg
-          docker build --build-arg VITE_API_URL="${{ steps.get-server.outputs.SERVER_URL }}" -t "${CLIENT_IMAGE}" TP5/client
-          docker push "${CLIENT_IMAGE}"
-        env:
-          CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
+          URL=$(gcloud run services describe tp5-server-qa --region "$REGION" --project "$PROJECT" --format='value(status.url)')
+          echo "QA server URL: $URL"
+          curl --fail --retry 5 --retry-delay 2 "$URL/health"
 
-      - name: Deploy client to Cloud Run
+  deploy-prod:
+    name: Deploy to Production (requires approval)
+    needs: deploy-qa
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP (PROD)
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_PROD }}
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          version: 'latest'
+
+      - name: Deploy server PROD
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
+          gcloud run deploy tp5-server \
+            --image "${IMAGE}" \
+            --region "${REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars FORECAST_COUNT=5,CLIENT_URL="https://tp5-client-366o626kia-uc.a.run.app" \
+            --project "$PROJECT"
+
+      - name: Deploy client PROD
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
           gcloud run deploy tp5-client \
@@ -75,14 +141,8 @@ jobs:
             --allow-unauthenticated \
             --project "$PROJECT"
 
-      - name: Smoke test server
+      - name: Smoke test PROD
         run: |
           URL=$(gcloud run services describe tp5-server --region "$REGION" --project "$PROJECT" --format='value(status.url)')
-          echo "Server URL: $URL"
+          echo "PROD server URL: $URL"
           curl --fail --retry 5 --retry-delay 2 "$URL/health"
-
-      - name: Smoke test client
-        run: |
-          URL=$(gcloud run services describe tp5-client --region "$REGION" --project "$PROJECT" --format='value(status.url)')
-          echo "Client URL: $URL"
-          curl --fail --retry 5 --retry-delay 2 "$URL" || true
