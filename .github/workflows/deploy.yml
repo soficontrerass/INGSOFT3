@@ -76,6 +76,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Record previous server image (QA)
+        id: prev_image
+        run: |
+          echo "PREV_IMAGE=$(gcloud run services describe tp5-server-qa --region ${REGION} --project ${PROJECT} --format='value(spec.template.spec.containers[0].image)')" >> $GITHUB_ENV
+
       - name: Debug - verify qa secret available
         env:
           GCP_SA_KEY_QA: ${{ secrets.GCP_SA_KEY_QA }}
@@ -96,6 +101,32 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           version: 'latest'
+
+      - name: Deploy server QA (with Cloud SQL)
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
+          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_QA }}"
+          DB_USER="postgres"
+          DB_NAME="${{ secrets.DB_NAME_QA }}"
+          gcloud run deploy tp5-server-qa \
+            --image "${IMAGE}" \
+            --region "${REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
+            --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="${DB_USER}",DB_PASS="${{ secrets.DB_PASS_QA }}",DB_NAME="${DB_NAME}" \
+            --project "$PROJECT"
+
+      - name: Install node deps & Run DB migrations (QA)
+        run: |
+          npm ci
+          npm run migrate
+        env:
+          DB_USER: "postgres"
+          DB_PASS: ${{ secrets.DB_PASS_QA }}
+          DB_NAME: ${{ secrets.DB_NAME_QA }}
+          DB_HOST: /cloudsql/${{ secrets.INSTANCE_CONN_NAME_QA }}
+
 
       - name: Deploy server QA
         run: |
@@ -130,6 +161,13 @@ jobs:
           echo "QA server URL: $URL"
           curl --fail --retry 5 --retry-delay 2 "$URL/health"
 
+      - name: Rollback on failure (QA)
+        if: failure()
+        run: |
+          echo "Rolling back to previous image: $PREV_IMAGE"
+          gcloud run deploy tp5-server-qa --image "${PREV_IMAGE}" --region "${REGION}" --project "${PROJECT}"
+
+
   deploy-prod:
     name: Deploy to Production (requires approval)
     needs: deploy-qa
@@ -138,6 +176,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Record previous server image (PROD)
+        id: prev_image_prod
+        run: |
+          echo "PREV_IMAGE=${{ steps.prev_image_prod_output }}" >> $GITHUB_ENV || true
+          echo "PREV_IMAGE=$(gcloud run services describe tp5-server --region ${REGION} --project ${PROJECT} --format='value(spec.template.spec.containers[0].image)')" >> $GITHUB_ENV
 
       - name: Debug - verify prod secret available
         env:
@@ -159,6 +203,31 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           version: 'latest'
+
+      - name: Deploy server PROD (with Cloud SQL)
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
+          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_PROD }}"
+          DB_USER="postgres"
+          DB_NAME="${{ secrets.DB_NAME_PROD }}"
+          gcloud run deploy tp5-server \
+            --image "${IMAGE}" \
+            --region "${REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
+            --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="${DB_USER}",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${DB_NAME}" \
+            --project "$PROJECT"
+
+      - name: Install node deps & Run DB migrations (PROD)
+        run: |
+          npm ci
+          npm run migrate
+        env:
+          DB_USER: "postgres"
+          DB_PASS: ${{ secrets.DB_PASS_PROD }}
+          DB_NAME: ${{ secrets.DB_NAME_PROD }}
+          DB_HOST: /cloudsql/${{ secrets.INSTANCE_CONN_NAME_PROD }}
 
       - name: Deploy server PROD
         run: |
@@ -187,3 +256,9 @@ jobs:
           URL=$(gcloud run services describe tp5-server --region "$REGION" --project "$PROJECT" --format='value(status.url)')
           echo "PROD server URL: $URL"
           curl --fail --retry 5 --retry-delay 2 "$URL/health"
+
+      - name: Rollback on failure (PROD)
+        if: failure()
+        run: |
+          echo "Rolling back to previous image: $PREV_IMAGE"
+          gcloud run deploy tp5-server --image "${PREV_IMAGE}" --region "${REGION}" --project "${PROJECT}"
