@@ -30,19 +30,11 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           version: 'latest'
 
-      - name: Enable required APIs (no-op if already enabled)
-        run: |
-          gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project "$PROJECT"
-
       - name: Build & push server image
         run: |
           SERVER_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
+          echo "Building and pushing ${SERVER_IMAGE}"
           gcloud builds submit TP5/server --tag "${SERVER_IMAGE}" --project "$PROJECT" --region "$REGION"
-
-      - name: Build & push client image
-        run: |
-          CLIENT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
-          gcloud builds submit TP5/client --tag "${CLIENT_IMAGE}" --project "$PROJECT" --region "$REGION"
 
       - name: Deploy server to Cloud Run
         run: |
@@ -55,7 +47,27 @@ jobs:
             --set-env-vars FORECAST_COUNT=5 \
             --project "$PROJECT"
 
-      - name: Deploy client to Cloud Run (optional)
+      - name: Get server URL
+        id: get-server
+        run: |
+          SERVER_URL=$(gcloud run services describe tp5-server --region "$REGION" --project "$PROJECT" --format='value(status.url)')
+          echo "SERVER_URL=$SERVER_URL" >> $GITHUB_OUTPUT
+
+      - name: Build client on runner with server URL
+        run: |
+          cd TP5/client
+          echo "Building client with API=${{ steps.get-server.outputs.SERVER_URL }}"
+          VITE_API_URL="${{ steps.get-server.outputs.SERVER_URL }}" npm ci
+          VITE_API_URL="${{ steps.get-server.outputs.SERVER_URL }}" npm run build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Build & push client image (includes dist)
+        run: |
+          CLIENT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
+          gcloud builds submit TP5/client --tag "${CLIENT_IMAGE}" --project "$PROJECT" --region "$REGION"
+
+      - name: Deploy client to Cloud Run
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
           gcloud run deploy tp5-client \
