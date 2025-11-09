@@ -32,16 +32,16 @@ jobs:
             echo "GCP_SA_KEY_QA is present (len=$(printf '%s' "$GCP_SA_KEY_QA" | wc -c))"
           fi
 
-      - name: Debug GCP auth (QA)
-        run: |
-          gcloud auth list
-          gcloud config get-value project
-          gcloud auth print-access-token || echo "print-access-token failed"
-
       - name: Authenticate to GCP (build)
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY_QA }}
+
+      - name: Debug GCP auth (QA)  # temporal, borralo después de verificar
+        run: |
+          gcloud auth list
+          gcloud config get-value project
+          gcloud auth print-access-token || echo "print-access-token failed"
 
       - name: Setup gcloud CLI
         uses: google-github-actions/setup-gcloud@v1
