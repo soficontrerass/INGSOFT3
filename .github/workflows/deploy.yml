@@ -117,7 +117,7 @@ jobs:
             --allow-unauthenticated \
             --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
             --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="${DB_USER}",DB_PASS="${{ secrets.DB_PASS_QA }}",DB_NAME="${DB_NAME}" \
-            --project "$PROJECT"
+            --project "$PROJECT" --quiet
 
       - name: Install node deps & Run DB migrations (QA)
         run: |
@@ -220,7 +220,7 @@ jobs:
             --allow-unauthenticated \
             --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
             --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="${DB_USER}",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${DB_NAME}" \
-            --project "$PROJECT"
+            --project "$PROJECT" --quiet
 
       - name: Canary traffic (PROD) - route 10% to new revision
         run: |
