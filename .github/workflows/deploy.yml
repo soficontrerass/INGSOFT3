@@ -43,6 +43,11 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           version: 'latest'
 
+      - name: Ensure required GCP APIs enabled
+        run: |
+          gcloud services enable sql-component.googleapis.com sqladmin.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project="${{ secrets.GCP_PROJECT_ID }}" --quiet || true
+          sleep 5
+
       - name: Build & push server image
         run: |
           SERVER_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
@@ -96,6 +101,11 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           version: 'latest'
+
+      - name: Ensure required GCP APIs enabled
+        run: |
+          gcloud services enable sql-component.googleapis.com sqladmin.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project="${{ secrets.GCP_PROJECT_ID }}" --quiet || true
+          sleep 5
 
       - name: Record previous server image (QA)
         id: prev_image
@@ -213,6 +223,11 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           version: 'latest'
+
+      - name: Ensure required GCP APIs enabled
+        run: |
+          gcloud services enable sql-component.googleapis.com sqladmin.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project="${{ secrets.GCP_PROJECT_ID }}" --quiet || true
+          sleep 5
 
       - name: Deploy server PROD (with Cloud SQL)
         run: |
