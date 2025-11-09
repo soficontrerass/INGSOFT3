@@ -43,6 +43,15 @@ jobs:
           gcloud config get-value project
           gcloud auth print-access-token || echo "print-access-token failed"
 
+      - name: Check GCP secret availability (debug)
+        run: |
+          if [ -z "${{ secrets.GCP_SA_KEY_QA }}" ]; then
+            echo "ERROR: GCP_SA_KEY_QA is empty - secret not available (Environment protected or not set)"
+            exit 1
+          else
+            echo "GCP_SA_KEY_QA is present"
+          fi
+
       - name: Setup gcloud CLI
         uses: google-github-actions/setup-gcloud@v1
         with:
