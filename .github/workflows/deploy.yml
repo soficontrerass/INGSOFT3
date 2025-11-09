@@ -120,8 +120,15 @@ jobs:
             --project "$PROJECT" --quiet
 
       - name: Install node deps & Run DB migrations (QA)
+        working-directory: TP5/server
         run: |
-          npm ci
+          if [ -f package-lock.json ]; then
+            echo "Using npm ci"
+            npm ci
+          else
+            echo "No lockfile found, running npm install"
+            npm install
+          fi
           npm run migrate
         env:
           DB_USER: "postgres"
@@ -230,15 +237,21 @@ jobs:
           gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${PREV_REVISION}=90,${NEW_REVISION}=10 --project ${PROJECT}
 
       - name: Install node deps & Run DB migrations (PROD)
+        working-directory: TP5/server
         run: |
-          npm ci
+          if [ -f package-lock.json ]; then
+            echo "Using npm ci"
+            npm ci
+          else
+            echo "No lockfile found, running npm install"
+            npm install
+          fi
           npm run migrate
         env:
           DB_USER: "postgres"
           DB_PASS: ${{ secrets.DB_PASS_PROD }}
           DB_NAME: ${{ secrets.DB_NAME_PROD }}
           DB_HOST: /cloudsql/${{ secrets.INSTANCE_CONN_NAME_PROD }}
-
       - name: Deploy server PROD
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
