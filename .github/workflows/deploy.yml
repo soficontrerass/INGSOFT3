@@ -214,6 +214,13 @@ jobs:
           echo "PREV_IMAGE=${{ steps.prev_image_prod_output }}" >> $GITHUB_ENV || true
           echo "PREV_IMAGE=$(gcloud run services describe tp5-server --region ${REGION} --project ${PROJECT} --format='value(spec.template.spec.containers[0].image)')" >> $GITHUB_ENV
 
+      - name: Record previous revision (PROD)
+        id: record_prev_rev
+        run: |
+          PREV_REVISION=$(gcloud run services describe tp5-server --region ${REGION} --project ${PROJECT} --format='value(status.latestReadyRevisionName)' || echo "")
+          echo "PREV_REVISION=$PREV_REVISION" >> $GITHUB_ENV
+          echo "PREV_REVISION=$PREV_REVISION"
+
       - name: Debug - verify prod secret available
         env:
           GCP_SA_KEY_PROD: ${{ secrets.GCP_SA_KEY_PROD }}
@@ -259,8 +266,13 @@ jobs:
         run: |
           NEW_REVISION=$(gcloud run services describe tp5-server --region ${REGION} --project ${PROJECT} --format='value(status.latestReadyRevisionName)')
           echo "NEW_REVISION=$NEW_REVISION" >> $GITHUB_ENV
-          # keep 90% to previous revision, 10% to new
-          gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${PREV_REVISION}=90,${NEW_REVISION}=10 --project ${PROJECT}
+          # if we have a previous revision, route 90/10; otherwise route to latest
+          if [ -n "${PREV_REVISION}" ]; then
+            gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${PREV_REVISION}=90,${NEW_REVISION}=10 --project ${PROJECT}
+          else
+            echo "No previous revision found; routing to latest (new) revision"
+            gcloud run services update-traffic tp5-server --region ${REGION} --to-latest --project ${PROJECT}
+          fi
 
       - name: Run DB migrations (PROD) as Cloud Run Job
         run: |
@@ -318,13 +330,18 @@ jobs:
           echo "PROD server URL: $URL"
           curl --fail --retry 5 --retry-delay 2 "$URL/health"
 
-      - name: Promote or Rollback (PROD)
+      - name: Promote new revision to 100% (PROD)
+        if: success()
         run: |
-          if [ "${{ job.status }}" = "success" ]; then
-            # promote new revision to 100% traffic
-            gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${NEW_REVISION}=100 --project ${PROJECT}
-          else
-            echo "Smoke tests failed — rolling back to previous revision ${PREV_REVISION}"
+          echo "Promoting NEW_REVISION=${NEW_REVISION} to 100%"
+          gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${NEW_REVISION}=100 --project ${PROJECT}
+
+      - name: Rollback to previous revision (PROD)
+        if: failure()
+        run: |
+          if [ -n "${PREV_REVISION}" ]; then
+            echo "Rolling back to previous revision ${PREV_REVISION}"
             gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${PREV_REVISION}=100 --project ${PROJECT}
+          else
+            echo "No previous revision available to rollback"; exit 1
           fi
-        if: always()
