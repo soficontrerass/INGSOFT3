@@ -41,7 +41,13 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-          export_default_credentials: true
+          version: 'latest'
+
+      - name: Debug GCP auth (QA)
+        run: |
+          gcloud auth list
+          gcloud config get-value project
+          gcloud auth print-access-token || echo "print-access-token failed"
 
       - name: Build & push server image
         run: |
