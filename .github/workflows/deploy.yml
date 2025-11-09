@@ -75,7 +75,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
+      
       - name: Record previous server image (QA)
         id: prev_image
         run: |
@@ -160,7 +160,7 @@ jobs:
           URL=$(gcloud run services describe tp5-server-qa --region "$REGION" --project "$PROJECT" --format='value(status.url)')
           echo "QA server URL: $URL"
           curl --fail --retry 5 --retry-delay 2 "$URL/health"
-
+      
       - name: Rollback on failure (QA)
         if: failure()
         run: |
@@ -176,7 +176,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
+      
       - name: Record previous server image (PROD)
         id: prev_image_prod
         run: |
@@ -219,6 +219,13 @@ jobs:
             --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="${DB_USER}",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${DB_NAME}" \
             --project "$PROJECT"
 
+      - name: Canary traffic (PROD) - route 10% to new revision
+        run: |
+          NEW_REVISION=$(gcloud run services describe tp5-server --region ${REGION} --project ${PROJECT} --format='value(status.latestReadyRevisionName)')
+          echo "NEW_REVISION=$NEW_REVISION" >> $GITHUB_ENV
+          # keep 90% to previous revision, 10% to new
+          gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${PREV_REVISION}=90,${NEW_REVISION}=10 --project ${PROJECT}
+
       - name: Install node deps & Run DB migrations (PROD)
         run: |
           npm ci
@@ -257,8 +264,13 @@ jobs:
           echo "PROD server URL: $URL"
           curl --fail --retry 5 --retry-delay 2 "$URL/health"
 
-      - name: Rollback on failure (PROD)
-        if: failure()
+      - name: Promote or Rollback (PROD)
         run: |
-          echo "Rolling back to previous image: $PREV_IMAGE"
-          gcloud run deploy tp5-server --image "${PREV_IMAGE}" --region "${REGION}" --project "${PROJECT}"
+          if [ "${{ job.status }}" = "success" ]; then
+            # promote new revision to 100% traffic
+            gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${NEW_REVISION}=100 --project ${PROJECT}
+          else
+            echo "Smoke tests failed — rolling back to previous revision ${PREV_REVISION}"
+            gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${PREV_REVISION}=100 --project ${PROJECT}
+          fi
+        if: always()
