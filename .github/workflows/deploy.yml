@@ -37,21 +37,6 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY_QA }}
 
-      - name: Debug GCP auth (QA)  # temporal, borralo después de verificar
-        run: |
-          gcloud auth list
-          gcloud config get-value project
-          gcloud auth print-access-token || echo "print-access-token failed"
-
-      - name: Check GCP secret availability (debug)
-        run: |
-          if [ -z "${{ secrets.GCP_SA_KEY_QA }}" ]; then
-            echo "ERROR: GCP_SA_KEY_QA is empty - secret not available (Environment protected or not set)"
-            exit 1
-          else
-            echo "GCP_SA_KEY_QA is present"
-          fi
-
       - name: Setup gcloud CLI
         uses: google-github-actions/setup-gcloud@v1
         with:
@@ -90,11 +75,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
-      - name: Record previous server image (QA)
-        id: prev_image
-        run: |
-          echo "PREV_IMAGE=$(gcloud run services describe tp5-server-qa --region ${REGION} --project ${PROJECT} --format='value(spec.template.spec.containers[0].image)')" >> $GITHUB_ENV
 
       - name: Debug - verify qa secret available
         env:
@@ -116,6 +96,13 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           version: 'latest'
+
+      - name: Record previous server image (QA)
+        id: prev_image
+        run: |
+         PREV=$(gcloud run services describe tp5-server-qa --region "$REGION" --project "$PROJECT" --format='value(spec.template.spec.containers[0].image)' || true)
+          echo "PREV_IMAGE=$PREV" >> $GITHUB_ENV
+          echo "Prev image: $PREV"
 
       - name: Deploy server QA (with Cloud SQL)
         run: |
@@ -141,7 +128,6 @@ jobs:
           DB_PASS: ${{ secrets.DB_PASS_QA }}
           DB_NAME: ${{ secrets.DB_NAME_QA }}
           DB_HOST: /cloudsql/${{ secrets.INSTANCE_CONN_NAME_QA }}
-
 
       - name: Deploy server QA
         run: |
@@ -179,9 +165,11 @@ jobs:
       - name: Rollback on failure (QA)
         if: failure()
         run: |
-          echo "Rolling back to previous image: $PREV_IMAGE"
+          if [ -z "${PREV_IMAGE}" ]; then
+            echo "No previous image found, cannot rollback."; exit 1
+          fi
+          echo "Rolling back to previous image: ${PREV_IMAGE}"
           gcloud run deploy tp5-server-qa --image "${PREV_IMAGE}" --region "${REGION}" --project "${PROJECT}"
-
 
   deploy-prod:
     name: Deploy to Production (requires approval)
