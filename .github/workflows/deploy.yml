@@ -129,22 +129,33 @@ jobs:
             --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="${DB_USER}",DB_PASS="${{ secrets.DB_PASS_QA }}",DB_NAME="${DB_NAME}" \
             --project "$PROJECT" --quiet
 
-      - name: Install node deps & Run DB migrations (QA)
-        working-directory: TP5/server
+      - name: Run DB migrations (QA) as Cloud Run Job
         run: |
-          if [ -f package-lock.json ]; then
-            echo "Using npm ci"
-            npm ci
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
+          JOB_NAME="tp5-migrate-qa"
+          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_QA }}"
+          # create or update job (idempotent)
+          if ! gcloud run jobs describe ${JOB_NAME} --region ${REGION} --project ${PROJECT} >/dev/null 2>&1; then
+            gcloud run jobs create ${JOB_NAME} \
+              --image "${IMAGE}" \
+              --region "${REGION}" \
+              --command node --args dist/migrate.js \
+              --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
+              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_QA }}",DB_NAME="${{ secrets.DB_NAME_QA }}" \
+              --project "${PROJECT}"
           else
-            echo "No lockfile found, running npm install"
-            npm install
+            gcloud run jobs update ${JOB_NAME} \
+              --image "${IMAGE}" \
+              --region "${REGION}" \
+              --command node --args dist/migrate.js \
+              --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
+              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_QA }}",DB_NAME="${{ secrets.DB_NAME_QA }}" \
+              --project "${PROJECT}" || true
           fi
-          npm run migrate
+          # execute job and wait for completion
+          gcloud run jobs execute ${JOB_NAME} --region ${REGION} --project ${PROJECT} --wait
         env:
-          DB_USER: "postgres"
-          DB_PASS: ${{ secrets.DB_PASS_QA }}
-          DB_NAME: ${{ secrets.DB_NAME_QA }}
-          DB_HOST: /cloudsql/${{ secrets.INSTANCE_CONN_NAME_QA }}
+          CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
 
       - name: Deploy server QA
         run: |
@@ -251,22 +262,32 @@ jobs:
           # keep 90% to previous revision, 10% to new
           gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${PREV_REVISION}=90,${NEW_REVISION}=10 --project ${PROJECT}
 
-      - name: Install node deps & Run DB migrations (PROD)
-        working-directory: TP5/server
+      - name: Run DB migrations (PROD) as Cloud Run Job
         run: |
-          if [ -f package-lock.json ]; then
-            echo "Using npm ci"
-            npm ci
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
+          JOB_NAME="tp5-migrate-prod"
+          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_PROD }}"
+          if ! gcloud run jobs describe ${JOB_NAME} --region ${REGION} --project ${PROJECT} >/dev/null 2>&1; then
+            gcloud run jobs create ${JOB_NAME} \
+              --image "${IMAGE}" \
+              --region "${REGION}" \
+              --command node --args dist/migrate.js \
+              --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
+              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${{ secrets.DB_NAME_PROD }}" \
+              --project "${PROJECT}"
           else
-            echo "No lockfile found, running npm install"
-            npm install
+            gcloud run jobs update ${JOB_NAME} \
+              --image "${IMAGE}" \
+              --region "${REGION}" \
+              --command node --args dist/migrate.js \
+              --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
+              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${{ secrets.DB_NAME_PROD }}" \
+              --project "${PROJECT}" || true
           fi
-          npm run migrate
+          gcloud run jobs execute ${JOB_NAME} --region ${REGION} --project ${PROJECT} --wait
         env:
-          DB_USER: "postgres"
-          DB_PASS: ${{ secrets.DB_PASS_PROD }}
-          DB_NAME: ${{ secrets.DB_NAME_PROD }}
-          DB_HOST: /cloudsql/${{ secrets.INSTANCE_CONN_NAME_PROD }}
+          CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
+
       - name: Deploy server PROD
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
