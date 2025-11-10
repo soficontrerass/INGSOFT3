@@ -277,16 +277,15 @@ jobs:
       - name: Run DB migrations (PROD) as Cloud Run Job
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
-          JOB_NAME="tp5-migrate-qa"
-          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_QA }}"
-          # create or update job (idempotent)
+          JOB_NAME="tp5-migrate-prod"
+          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_PROD }}"
           if ! gcloud run jobs describe ${JOB_NAME} --region ${REGION} --project ${PROJECT} >/dev/null 2>&1; then
             gcloud run jobs create ${JOB_NAME} \
               --image "${IMAGE}" \
               --region "${REGION}" \
               --command node --args dist/migrate.js \
               --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
-              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_QA }}",DB_NAME="${{ secrets.DB_NAME_QA }}" \
+              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${{ secrets.DB_NAME_PROD }}" \
               --project "${PROJECT}"
           else
             gcloud run jobs update ${JOB_NAME} \
@@ -294,10 +293,9 @@ jobs:
               --region "${REGION}" \
               --command node --args dist/migrate.js \
               --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
-              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_QA }}",DB_NAME="${{ secrets.DB_NAME_QA }}" \
+              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${{ secrets.DB_NAME_PROD }}" \
               --project "${PROJECT}" || true
           fi
-          # execute job and wait for completion
           gcloud run jobs execute ${JOB_NAME} --region ${REGION} --project ${PROJECT} --wait
         env:
           CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
@@ -343,5 +341,6 @@ jobs:
             echo "Rolling back to previous revision ${PREV_REVISION}"
             gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${PREV_REVISION}=100 --project ${PROJECT}
           else
-            echo "No previous revision available to rollback"; exit 1
+            echo "No previous revision available to rollback; skipping."
+            exit 0
           fi
