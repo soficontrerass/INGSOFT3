@@ -1,0 +1,48 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./server
+
+      - name: Run tests
+        run: npm test
+        working-directory: ./server
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Deploy to Google Cloud
+        run: |
+          echo "${{ secrets.GCP_SA_KEY_PROD }}" > "${HOME}/gcp-key.json"
+          gcloud auth activate-service-account --key-file="${HOME}/gcp-key.json"
+          gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
+          gcloud run deploy tp6-server --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/tp6-server --platform managed --region us-central1 --allow-unauthenticated
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
