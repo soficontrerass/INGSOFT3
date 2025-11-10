@@ -1,17 +1,16 @@
-import express from 'express';
-import { json } from 'body-parser';
-import apiRoutes from './routes/api';
+// ...existing code...
+import app from './app';
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const CLIENT_URL = process.env.CLIENT_URL || 'https://tp5-client-366o626kia-uc.a.run.app';
 
-// Middleware
-app.use(json());
+// Redirect root to the deployed client only in production
+if (process.env.NODE_ENV === 'production') {
+  app.get('/', (_req, res) => res.redirect(CLIENT_URL));
+} else {
+  app.get('/', (_req, res) => res.send('Server running. Use the client UI to interact.'));
+}
 
-// Routes
-app.use('/api', apiRoutes);
-
-// Start the server
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+const port = process.env.PORT ? Number(process.env.PORT) : 8080;
+app.listen(port, () => {
+  console.log(`Server listening on port ${port} (FORECAST_COUNT=${process.env.FORECAST_COUNT || '5'})`);
 });
