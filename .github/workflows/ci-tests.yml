@@ -1,0 +1,51 @@
+name: CI - Tests
+
+on:
+  push:
+    branches: [ main, 'feature/*' ]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install & Test backend
+        working-directory: ./TP6/server
+        run: |
+          npm ci
+          npm run test:ci || npm run test
+        env:
+          CI: true
+
+      - name: Upload backend coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: TP6/server/coverage
+
+      - name: Install & Test frontend
+        working-directory: ./TP6/client
+        run: |
+          npm ci
+          npm run test:ci || npm run test
+        env:
+          CI: true
+
+      - name: Upload frontend coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: TP6/client/coverage

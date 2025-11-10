@@ -1,7 +1,7 @@
 // ...existing code...
 import app from './app';
 
-const CLIENT_URL = process.env.CLIENT_URL || 'https://tp5-client-366o626kia-uc.a.run.app';
+const CLIENT_URL = process.env.CLIENT_URL || 'https://tp6-client-PLACEHOLDER.a.run.app';
 
 // Redirect root to the deployed client only in production
 if (process.env.NODE_ENV === 'production') {

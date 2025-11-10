@@ -1,13 +1,10 @@
-// ...existing code...
 import express from 'express';
-import cors from 'cors';
 import apiRouter from './routes/api';
 
 const app = express();
-
-app.use(cors());
 app.use(express.json());
 
-app.use('/', apiRouter);
+// monta tu API en /api para que supertest la pueda consumir sin levantar el servidor
+app.use('/api', apiRouter);
 
 export default app;
