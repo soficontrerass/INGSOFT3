@@ -54,6 +54,19 @@ jobs:
           echo "Building and pushing ${SERVER_IMAGE}"
           gcloud builds submit TP5/server --tag "${SERVER_IMAGE}" --project "$PROJECT" --region "$REGION"
 
+      - name: Save image references
+        run: |
+          echo "${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}" > image-ref-server.txt
+          echo "${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}" > image-ref-client.txt
+
+      - name: Upload image references artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-refs
+          path: |
+            image-ref-server.txt
+            image-ref-client.txt
+
       - name: Get server URL (temporary, may be empty on first run)
         id: get-server
         run: |
@@ -413,3 +426,25 @@ jobs:
             echo "No previous revision available to rollback; skipping."
             exit 0
           fi
+          BACKUP_FILE="tp5db-prod-$(date +%Y%m%d-%H%M%S).sql.gz"
+          echo "Exporting prod DB to gs://${GCS_BACKUP_BUCKET}/${BACKUP_FILE} ..."
+          gcloud sql export sql "${INSTANCE_ID}" "gs://${GCS_BACKUP_BUCKET}/${BACKUP_FILE}" --database="${DB_NAME_PROD}" --project="${PROJECT}" --quiet
+
+          # Save backup filename for artifact (small pointer)
+          echo "${BACKUP_FILE}" > backup-file.txt
+          # optionally save migration job output to a file from the commands above (use tee in runtime)
+          # echo "migration logs saved to migration-log.txt" (generate that file where you run the job)
+
+      - name: Upload backup metadata artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-db-backup-metadata
+          path: backup-file.txt
+
+      - name: Upload migration logs artifact (if exists)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migrate-logs
+          path: migration-log.txt
