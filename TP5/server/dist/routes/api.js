@@ -20,5 +20,18 @@ router.get('/health', async (_req, res) => {
         res.status(500).json({ status: 'error', error: err.message });
     }
 });
-// ...existing code...
+// GET /forecasts -> devuelve las últimas 100 forecasts
+router.get('/forecasts', async (_req, res) => {
+    try {
+        const result = await (0, db_1.query)('SELECT id, created_at, value FROM forecasts ORDER BY id DESC LIMIT 100');
+        // soporta tanto retorno { rows } como arreglo directo
+        const rows = result?.rows ?? result;
+        res.json(rows);
+    }
+    catch (err) {
+        console.error('GET /forecasts error:', err);
+        res.status(500).json({ error: 'database error' });
+    }
+});
 exports.default = router;
+// ...existing code...
