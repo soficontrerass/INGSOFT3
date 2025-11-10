@@ -199,217 +199,217 @@ jobs:
           echo "Rolling back to previous image: ${PREV_IMAGE}"
           gcloud run deploy tp5-server-qa --image "${PREV_IMAGE}" --region "${REGION}" --project "${PROJECT}"
 
-deploy-prod:
-  name: Deploy to Production (requires approval)
-  needs: deploy-qa
-  runs-on: ubuntu-latest
-  environment: prod
-  steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+  deploy-prod:
+    name: Deploy to Production (requires approval)
+    needs: deploy-qa
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Record previous server image (PROD)
-      id: prev_image_prod
-      run: |
-        echo "PREV_IMAGE=${{ steps.prev_image_prod_output }}" >> $GITHUB_ENV || true
-        echo "PREV_IMAGE=$(gcloud run services describe tp5-server --region ${REGION} --project ${PROJECT} --format='value(spec.template.spec.containers[0].image)')" >> $GITHUB_ENV
+      - name: Record previous server image (PROD)
+        id: prev_image_prod
+        run: |
+          echo "PREV_IMAGE=${{ steps.prev_image_prod_output }}" >> $GITHUB_ENV || true
+          echo "PREV_IMAGE=$(gcloud run services describe tp5-server --region ${REGION} --project ${PROJECT} --format='value(spec.template.spec.containers[0].image)')" >> $GITHUB_ENV
 
-    - name: Record previous revision (PROD)
-      id: record_prev_rev
-      run: |
-        PREV_REVISION=$(gcloud run services describe tp5-server --region ${REGION} --project ${PROJECT} --format='value(status.latestReadyRevisionName)' || echo "")
-        echo "PREV_REVISION=$PREV_REVISION" >> $GITHUB_ENV
-        echo "PREV_REVISION=$PREV_REVISION"
+      - name: Record previous revision (PROD)
+        id: record_prev_rev
+        run: |
+          PREV_REVISION=$(gcloud run services describe tp5-server --region ${REGION} --project ${PROJECT} --format='value(status.latestReadyRevisionName)' || echo "")
+          echo "PREV_REVISION=$PREV_REVISION" >> $GITHUB_ENV
+          echo "PREV_REVISION=$PREV_REVISION"
 
-    - name: Debug - verify prod secret available
-      env:
-        GCP_SA_KEY_PROD: ${{ secrets.GCP_SA_KEY_PROD }}
-      run: |
-        if [ -z "$GCP_SA_KEY_PROD" ]; then
-          echo "ERROR: GCP_SA_KEY_PROD is empty or not available in this job"; exit 1
-        else
-          echo "GCP_SA_KEY_PROD is present"
-        fi
+      - name: Debug - verify prod secret available
+        env:
+          GCP_SA_KEY_PROD: ${{ secrets.GCP_SA_KEY_PROD }}
+        run: |
+          if [ -z "$GCP_SA_KEY_PROD" ]; then
+            echo "ERROR: GCP_SA_KEY_PROD is empty or not available in this job"; exit 1
+          else
+            echo "GCP_SA_KEY_PROD is present"
+          fi
 
-    - name: Authenticate to GCP (PROD)
-      uses: google-github-actions/auth@v1
-      with:
-        credentials_json: ${{ secrets.GCP_SA_KEY_PROD }}
+      - name: Authenticate to GCP (PROD)
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_PROD }}
 
-    - name: Setup gcloud CLI (PROD)
-      uses: google-github-actions/setup-gcloud@v1
-      with:
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
-        version: 'latest'
+      - name: Setup gcloud CLI (PROD)
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          version: 'latest'
 
-    - name: Ensure required GCP APIs enabled
-      run: |
-        gcloud services enable sql-component.googleapis.com sqladmin.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project="${{ secrets.GCP_PROJECT_ID }}" --quiet || true
-        sleep 5
+      - name: Ensure required GCP APIs enabled
+        run: |
+          gcloud services enable sql-component.googleapis.com sqladmin.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project="${{ secrets.GCP_PROJECT_ID }}" --quiet || true
+          sleep 5
 
-    - name: Deploy server PROD (with Cloud SQL)
-      run: |
-        IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
-        INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_PROD }}"
-        DB_USER="postgres"
-        DB_NAME="${{ secrets.DB_NAME_PROD }}"
-        gcloud run deploy tp5-server \
-          --image "${IMAGE}" \
-          --region "${REGION}" \
-          --platform managed \
-          --allow-unauthenticated \
-          --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
-          --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="${DB_USER}",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${DB_NAME}" \
-          --project "$PROJECT" --quiet
-
-    - name: Canary traffic (PROD) - route 10% to new revision
-      run: |
-        NEW_REVISION=$(gcloud run services describe tp5-server --region ${REGION} --project ${PROJECT} --format='value(status.latestReadyRevisionName)')
-        echo "NEW_REVISION=$NEW_REVISION" >> $GITHUB_ENV
-        if [ -n "${PREV_REVISION}" ]; then
-          gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${PREV_REVISION}=90,${NEW_REVISION}=10 --project ${PROJECT}
-        else
-          echo "No previous revision found; routing to latest (new) revision"
-          gcloud run services update-traffic tp5-server --region ${REGION} --to-latest --project ${PROJECT}
-        fi
-
-    - name: Backup DB, run migrations (PROD) and promote on success
-      env:
-        PROJECT: ${{ secrets.GCP_PROJECT_ID }}
-        REGION: ${{ secrets.GCP_REGION }}
-        REPO: ${{ env.REPO }}
-        SHA: ${{ env.SHA }}
-        INSTANCE_CONN_NAME_PROD: ${{ secrets.INSTANCE_CONN_NAME_PROD }}
-        DB_PASS_PROD: ${{ secrets.DB_PASS_PROD }}
-        DB_NAME_PROD: ${{ secrets.DB_NAME_PROD }}
-        GCS_BACKUP_BUCKET: ${{ secrets.GCS_BACKUP_BUCKET }}
-        CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
-      run: |
-        set -euo pipefail
-
-        IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
-        JOB_NAME="tp5-migrate-prod"
-
-        if [ -z "${INSTANCE_CONN_NAME_PROD:-}" ]; then
-          echo "ERROR: INSTANCE_CONN_NAME_PROD is empty"; exit 1
-        fi
-        if [ -z "${GCS_BACKUP_BUCKET:-}" ]; then
-          echo "ERROR: GCS_BACKUP_BUCKET secret is empty"; exit 1
-        fi
-
-        INSTANCE_ID=$(echo "$INSTANCE_CONN_NAME_PROD" | awk -F: '{print $NF}')
-        BACKUP_FILE="tp5db-prod-$(date +%Y%m%d-%H%M%S).sql.gz"
-        echo "Exporting prod DB to gs://${GCS_BACKUP_BUCKET}/${BACKUP_FILE} ..."
-        gcloud sql export sql "${INSTANCE_ID}" "gs://${GCS_BACKUP_BUCKET}/${BACKUP_FILE}" --database="${DB_NAME_PROD}" --project="${PROJECT}" --quiet
-
-        echo "Create/update migration job ${JOB_NAME} with Cloud SQL instance ${INSTANCE_CONN_NAME_PROD}..."
-        if ! gcloud run jobs describe "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" >/dev/null 2>&1; then
-          gcloud run jobs create "${JOB_NAME}" \
+      - name: Deploy server PROD (with Cloud SQL)
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
+          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_PROD }}"
+          DB_USER="postgres"
+          DB_NAME="${{ secrets.DB_NAME_PROD }}"
+          gcloud run deploy tp5-server \
             --image "${IMAGE}" \
             --region "${REGION}" \
-            --command node --args dist/migrate.js \
-            --set-cloudsql-instances "${INSTANCE_CONN_NAME_PROD}" \
-            --set-env-vars "DB_HOST=/cloudsql/${INSTANCE_CONN_NAME_PROD},DB_USER=postgres,DB_PASS=${DB_PASS_PROD},DB_NAME=${DB_NAME_PROD}" \
-            --project "${PROJECT}"
-        else
-          gcloud run jobs update "${JOB_NAME}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
+            --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="${DB_USER}",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${DB_NAME}" \
+            --project "$PROJECT" --quiet
+
+      - name: Canary traffic (PROD) - route 10% to new revision
+        run: |
+          NEW_REVISION=$(gcloud run services describe tp5-server --region ${REGION} --project ${PROJECT} --format='value(status.latestReadyRevisionName)')
+          echo "NEW_REVISION=$NEW_REVISION" >> $GITHUB_ENV
+          if [ -n "${PREV_REVISION}" ]; then
+            gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${PREV_REVISION}=90,${NEW_REVISION}=10 --project ${PROJECT}
+          else
+            echo "No previous revision found; routing to latest (new) revision"
+            gcloud run services update-traffic tp5-server --region ${REGION} --to-latest --project ${PROJECT}
+          fi
+
+      - name: Backup DB, run migrations (PROD) and promote on success
+        env:
+          PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          REGION: ${{ secrets.GCP_REGION }}
+          REPO: ${{ env.REPO }}
+          SHA: ${{ env.SHA }}
+          INSTANCE_CONN_NAME_PROD: ${{ secrets.INSTANCE_CONN_NAME_PROD }}
+          DB_PASS_PROD: ${{ secrets.DB_PASS_PROD }}
+          DB_NAME_PROD: ${{ secrets.DB_NAME_PROD }}
+          GCS_BACKUP_BUCKET: ${{ secrets.GCS_BACKUP_BUCKET }}
+          CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
+        run: |
+          set -euo pipefail
+
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
+          JOB_NAME="tp5-migrate-prod"
+
+          if [ -z "${INSTANCE_CONN_NAME_PROD:-}" ]; then
+            echo "ERROR: INSTANCE_CONN_NAME_PROD is empty"; exit 1
+          fi
+          if [ -z "${GCS_BACKUP_BUCKET:-}" ]; then
+            echo "ERROR: GCS_BACKUP_BUCKET secret is empty"; exit 1
+          fi
+
+          INSTANCE_ID=$(echo "$INSTANCE_CONN_NAME_PROD" | awk -F: '{print $NF}')
+          BACKUP_FILE="tp5db-prod-$(date +%Y%m%d-%H%M%S).sql.gz"
+          echo "Exporting prod DB to gs://${GCS_BACKUP_BUCKET}/${BACKUP_FILE} ..."
+          gcloud sql export sql "${INSTANCE_ID}" "gs://${GCS_BACKUP_BUCKET}/${BACKUP_FILE}" --database="${DB_NAME_PROD}" --project="${PROJECT}" --quiet
+
+          echo "Create/update migration job ${JOB_NAME} with Cloud SQL instance ${INSTANCE_CONN_NAME_PROD}..."
+          if ! gcloud run jobs describe "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" >/dev/null 2>&1; then
+            gcloud run jobs create "${JOB_NAME}" \
+              --image "${IMAGE}" \
+              --region "${REGION}" \
+              --command node --args dist/migrate.js \
+              --set-cloudsql-instances "${INSTANCE_CONN_NAME_PROD}" \
+              --set-env-vars "DB_HOST=/cloudsql/${INSTANCE_CONN_NAME_PROD},DB_USER=postgres,DB_PASS=${DB_PASS_PROD},DB_NAME=${DB_NAME_PROD}" \
+              --project "${PROJECT}"
+          else
+            gcloud run jobs update "${JOB_NAME}" \
+              --image "${IMAGE}" \
+              --region "${REGION}" \
+              --command node --args dist/migrate.js \
+              --set-cloudsql-instances "${INSTANCE_CONN_NAME_PROD}" \
+              --set-env-vars "DB_HOST=/cloudsql/${INSTANCE_CONN_NAME_PROD},DB_USER=postgres,DB_PASS=${DB_PASS_PROD},DB_NAME=${DB_NAME_PROD}" \
+              --project "${PROJECT}" || true
+          fi
+
+          echo "Executing migration job..."
+          set +e
+          gcloud run jobs execute "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" --wait
+          JOB_EXIT=$?
+          set -e
+
+          if [ $JOB_EXIT -ne 0 ]; then
+            echo "Migration job failed (exit=$JOB_EXIT). Fetching logs and attempting rollback..."
+            LAST_EXEC=$(gcloud run jobs executions list --job "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" --limit 1 --format='value(name)')
+            gcloud beta run jobs executions logs read "${LAST_EXEC}" --region "${REGION}" --project "${PROJECT}" --limit 500 || true
+
+            if [ -n "${PREV_REVISION:-}" ]; then
+              echo "Rolling back to previous revision ${PREV_REVISION}"
+              gcloud run services update-traffic tp5-server --region "${REGION}" --to-revisions "${PREV_REVISION}=100" --project "${PROJECT}"
+            else
+              echo "No PREV_REVISION found; cannot rollback traffic automatically."
+            fi
+            exit 1
+          fi
+
+          echo "Migration job succeeded. Running smoke test..."
+          URL=$(gcloud run services describe tp5-server --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')
+          echo "Service URL: $URL"
+          for i in 1 2 3 4 5; do
+            if curl --fail --silent --show-error --retry 0 "$URL/health"; then
+              echo "Smoke test ok"
+              SMOKE_OK=1
+              break
+            else
+              echo "Smoke test attempt $i failed, sleeping 5s..."
+              sleep 5
+            fi
+          done
+
+          if [ "${SMOKE_OK:-0}" -ne 1 ]; then
+            echo "Smoke test failed after migrations. Initiating rollback..."
+            if [ -n "${PREV_REVISION:-}" ]; then
+              gcloud run services update-traffic tp5-server --region "${REGION}" --to-revisions "${PREV_REVISION}=100" --project "${PROJECT}"
+            fi
+            exit 1
+          fi
+
+          echo "Promoting new revision to 100% traffic..."
+          NEW_REV=$(gcloud run services describe tp5-server --region "${REGION}" --project "${PROJECT}" --format='value(status.latestReadyRevisionName)')
+          gcloud run services update-traffic tp5-server --region "${REGION}" --to-revisions "${NEW_REV}=100" --project "${PROJECT}"
+
+          echo "Done."
+
+      - name: Deploy server PROD
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
+          gcloud run deploy tp5-server \
             --image "${IMAGE}" \
             --region "${REGION}" \
-            --command node --args dist/migrate.js \
-            --set-cloudsql-instances "${INSTANCE_CONN_NAME_PROD}" \
-            --set-env-vars "DB_HOST=/cloudsql/${INSTANCE_CONN_NAME_PROD},DB_USER=postgres,DB_PASS=${DB_PASS_PROD},DB_NAME=${DB_NAME_PROD}" \
-            --project "${PROJECT}" || true
-        fi
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars FORECAST_COUNT=10,CLIENT_URL="https://tp5-client-366o626kia-uc.a.run.app" \
+            --project "$PROJECT"
 
-        echo "Executing migration job..."
-        set +e
-        gcloud run jobs execute "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" --wait
-        JOB_EXIT=$?
-        set -e
+      - name: Deploy client PROD
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
+          gcloud run deploy tp5-client \
+            --image "${IMAGE}" \
+            --region "${REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars VITE_API_URL="https://tp5-server-366o626kia-uc.a.run.app" \
+            --project "$PROJECT"
 
-        if [ $JOB_EXIT -ne 0 ]; then
-          echo "Migration job failed (exit=$JOB_EXIT). Fetching logs and attempting rollback..."
-          LAST_EXEC=$(gcloud run jobs executions list --job "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" --limit 1 --format='value(name)')
-          gcloud beta run jobs executions logs read "${LAST_EXEC}" --region "${REGION}" --project "${PROJECT}" --limit 500 || true
+      - name: Smoke test PROD
+        run: |
+          URL=$(gcloud run services describe tp5-server --region "$REGION" --project "$PROJECT" --format='value(status.url)')
+          echo "PROD server URL: $URL"
+          curl --fail --retry 5 --retry-delay 2 "$URL/health"
 
-          if [ -n "${PREV_REVISION:-}" ]; then
+      - name: Promote new revision to 100% (PROD)
+        if: success()
+        run: |
+          echo "Promoting NEW_REVISION=${NEW_REVISION} to 100%"
+          gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${NEW_REVISION}=100 --project ${PROJECT}
+
+      - name: Rollback to previous revision (PROD)
+        if: failure()
+        run: |
+          if [ -n "${PREV_REVISION}" ]; then
             echo "Rolling back to previous revision ${PREV_REVISION}"
-            gcloud run services update-traffic tp5-server --region "${REGION}" --to-revisions "${PREV_REVISION}=100" --project "${PROJECT}"
+            gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${PREV_REVISION}=100 --project ${PROJECT}
           else
-            echo "No PREV_REVISION found; cannot rollback traffic automatically."
+            echo "No previous revision available to rollback; skipping."
+            exit 0
           fi
-          exit 1
-        fi
-
-        echo "Migration job succeeded. Running smoke test..."
-        URL=$(gcloud run services describe tp5-server --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')
-        echo "Service URL: $URL"
-        for i in 1 2 3 4 5; do
-          if curl --fail --silent --show-error --retry 0 "$URL/health"; then
-            echo "Smoke test ok"
-            SMOKE_OK=1
-            break
-          else
-            echo "Smoke test attempt $i failed, sleeping 5s..."
-            sleep 5
-          fi
-        done
-
-        if [ "${SMOKE_OK:-0}" -ne 1 ]; then
-          echo "Smoke test failed after migrations. Initiating rollback..."
-          if [ -n "${PREV_REVISION:-}" ]; then
-            gcloud run services update-traffic tp5-server --region "${REGION}" --to-revisions "${PREV_REVISION}=100" --project "${PROJECT}"
-          fi
-          exit 1
-        fi
-
-        echo "Promoting new revision to 100% traffic..."
-        NEW_REV=$(gcloud run services describe tp5-server --region "${REGION}" --project "${PROJECT}" --format='value(status.latestReadyRevisionName)')
-        gcloud run services update-traffic tp5-server --region "${REGION}" --to-revisions "${NEW_REV}=100" --project "${PROJECT}"
-
-        echo "Done."
-
-    - name: Deploy server PROD
-      run: |
-        IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
-        gcloud run deploy tp5-server \
-          --image "${IMAGE}" \
-          --region "${REGION}" \
-          --platform managed \
-          --allow-unauthenticated \
-          --set-env-vars FORECAST_COUNT=10,CLIENT_URL="https://tp5-client-366o626kia-uc.a.run.app" \
-          --project "$PROJECT"
-
-    - name: Deploy client PROD
-      run: |
-        IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
-        gcloud run deploy tp5-client \
-          --image "${IMAGE}" \
-          --region "${REGION}" \
-          --platform managed \
-          --allow-unauthenticated \
-          --set-env-vars VITE_API_URL="https://tp5-server-366o626kia-uc.a.run.app" \
-          --project "$PROJECT"
-
-    - name: Smoke test PROD
-      run: |
-        URL=$(gcloud run services describe tp5-server --region "$REGION" --project "$PROJECT" --format='value(status.url)')
-        echo "PROD server URL: $URL"
-        curl --fail --retry 5 --retry-delay 2 "$URL/health"
-
-    - name: Promote new revision to 100% (PROD)
-      if: success()
-      run: |
-        echo "Promoting NEW_REVISION=${NEW_REVISION} to 100%"
-        gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${NEW_REVISION}=100 --project ${PROJECT}
-
-    - name: Rollback to previous revision (PROD)
-      if: failure()
-      run: |
-        if [ -n "${PREV_REVISION}" ]; then
-          echo "Rolling back to previous revision ${PREV_REVISION}"
-          gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${PREV_REVISION}=100 --project ${PROJECT}
-        else
-          echo "No previous revision available to rollback; skipping."
-          exit 0
-        fi
