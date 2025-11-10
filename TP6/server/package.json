@@ -1,0 +1,24 @@
+{
+  "name": "tp6-server",
+  "version": "1.0.0",
+  "description": "Backend server for TP6 project",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "pg": "^8.7.1"
+  },
+  "devDependencies": {
+    "typescript": "^4.5.4",
+    "ts-node": "^10.4.0",
+    "jest": "^27.0.6",
+    "eslint": "^7.32.0"
+  },
+  "author": "Your Name",
+  "license": "MIT"
+}
