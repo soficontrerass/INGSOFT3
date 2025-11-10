@@ -17,5 +17,18 @@ router.get('/health', async (_req, res) => {
   }
 });
 
-// ...existing code...
+// GET /forecasts -> devuelve las últimas 100 forecasts
+router.get('/forecasts', async (_req, res) => {
+  try {
+    const result: any = await query('SELECT id, created_at, value FROM forecasts ORDER BY id DESC LIMIT 100');
+    // soporta tanto retorno { rows } como arreglo directo
+    const rows = result?.rows ?? result;
+    res.json(rows);
+  } catch (err: any) {
+    console.error('GET /forecasts error:', err);
+    res.status(500).json({ error: 'database error' });
+  }
+});
+
 export default router;
+// ...existing code...
