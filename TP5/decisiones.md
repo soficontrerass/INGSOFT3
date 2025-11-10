@@ -66,34 +66,34 @@ Estado actual y pasos pendientes (recomendado)
 Las capturas relevantes están en `TP5/evidencias/`. Ábrelas en el orden indicado durante la defensa.
 
 - Workflow y artifacts (build → deploy):
-![Workflow: build → deploy QA → deploy PROD](TP5/evidencias/artifacts.png)
+![Workflow: build → deploy QA → deploy PROD](evidencias/artifacts.png)
 
 - Workflow esperando aprobación a Producción:
-![Workflow esperando aprobación a producción](TP5/evidencias/actions_prod_waiting_approval.png)
+![Workflow esperando aprobación a producción](evidencias/actions_prod_waiting_approval.png)
 
 - Modal de aprobación en GitHub Actions:
-![Modal de aprobación en GitHub Actions](TP5/evidencias/actions_approve_modal.png)
+![Modal de aprobación en GitHub Actions](evidencias/actions_approve_modal.png)
 
 - Servicio en Cloud Run (URL, revisión, tráfico):
-![Cloud Run service overview](TP5/evidencias/cloudrun_service.png)
+![Cloud Run service overview](evidencias/cloudrun_service.png)
 
 - Health check del servicio (usar la URL en vivo durante la demo):
 (Ver `TP5/server/src/routes/api.ts` para el endpoint /health)
 
 - Cloud SQL — instancia y export/backup:
-![Cloud SQL instance overview](TP5/evidencias/cloudsql_instance.png)
-![Cloud SQL export operation](TP5/evidencias/cloudsql_export_operation.png)
+![Cloud SQL instance overview](evidencias/cloudsql_instance.png)
+![Cloud SQL export operation](evidencias/cloudsql_export_operation.png)
 
 - Backups en GCS y propiedades del objeto:
-![Lista de backups en Cloud Storage](TP5/evidencias/gcs_bucket_list.png)
-![Propiedades del backup en GCS](TP5/evidencias/gcs_backup_properties.png)
+![Lista de backups en Cloud Storage](evidencias/gcs_bucket_list.png)
+![Propiedades del backup en GCS](evidencias/gcs_backup_properties.png)
 
 - Variables/Secrets y IAM:
-![Variables y secrets por entorno](TP5/evidencias/enviroments_secrets.png)
-![Service Accounts y roles IAM](TP5/evidencias/iam_service_accounts.png)
+![Variables y secrets por entorno](evidencias/enviroments_secrets.png)
+![Service Accounts y roles IAM](evidencias/iam_service_accounts.png)
 
 - Migraciones (job) — ejecución y logs:
-![Ejecución del job de migración](TP5/evidencias/run_job_migrate.png)
+![Ejecución del job de migración](evidencias/run_job_migrate.png)
 
 Cómo usarlas en la defensa 
 1. Abrir `TP5/evidencias/artifacts.png` (build/artifacts).  
