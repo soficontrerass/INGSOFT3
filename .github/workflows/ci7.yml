@@ -75,6 +75,9 @@ jobs:
           npm run start &>/dev/null & echo $! > server.pid
         continue-on-error: false
 
+      - name: Install client dependencies for Cypress
+        run: npm ci --prefix TP7/client
+
       - name: Run Cypress E2E tests
         uses: cypress-io/github-action@v6
         with:
