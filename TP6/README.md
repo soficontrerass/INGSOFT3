@@ -1,52 +1,35 @@
+// ...existing code...
 # TP6 — Pruebas Unitarias
 
-Contenido
-- server/  (backend TypeScript + Jest)
-- client/  (frontend React + Vitest)
+Resumen rápido
+- Backend: TypeScript + Jest (ts-jest). Cobertura: carpeta `server/coverage`.
+- Frontend: React + Vitest + Testing Library. Cobertura: carpeta `client/coverage`.
 
-Prerequisitos
-- Node.js 18+ o 20
-- npm
-
-Comandos útiles
-
-Server
-- Instalar dependencias:
-  cd TP6/server
+Cómo ejecutar tests (local)
+- Server:
+  ```powershell
+  cd C:\INGSOFT3\ingsoft3\TP6\server
   npm ci
-- Test (desarrollo):
-  npm run test
-- Test + coverage (CI):
-  npm run test:ci
-- Levantar server (dev):
-  $env:PORT=8080; npm run dev   (Windows PowerShell)
-  PORT=8080 npm run dev         (Linux/macOS)
-
-Client
-- Instalar dependencias:
-  cd TP6/client
+  npm run test        # modo desarrollo
+  npm run test:ci     # run + coverage (CI)
+  ```
+- Client:
+  ```powershell
+  cd C:\INGSOFT3\ingsoft3\TP6\client
   npm ci
-- Test (watch):
-  npm run test
-- Test + coverage:
-  npm run test:ci
-- Levantar app (dev):
-  npm run dev
+  npm run test        # vitest watch
+  npm run test:ci     # run + coverage
+  ```
 
-Configuración de entornos para tests
-- Cliente: crear `.env.test` en `TP6/client` con:
-  VITE_API_URL=http://localhost:8080
+Integración CI
+- El pipeline ejecuta `npm run test:ci` en server y client y sube artifacts `coverage`.
 
-Estrategia de pruebas
-- Backend: tests unitarios con Jest/ts-jest; mockeo de la capa de datos.
-- Frontend: Vitest + Testing Library; MSW recomendado para pruebas de integración.
+Evidencias (capturas)
+- Cobertura frontend:
+  ![Coverage Frontend](evidencias/coveragefrontend.png)
+- Cobertura backend:
+  ![Coverage Backend](evidencias/coveragebackend.png)
 
-CI/CD
-- Archivo: .github/workflows/ci-tests.yml
-- Ejecuta tests en servidor y cliente y sube artifacts `backend-coverage` y `frontend-coverage`.
-
-Evidencias
-- Guardar capturas en `/docs/evidencias` y referenciarlas en `decisiones.md`.
-
-Soporte
-- Si necesitás ejemplos de tests adicionales (servicios backend, componentes frontend, MSW), indicá cuál prefieres y los genero.
+Archivos relevantes
+- decisiones.md — estrategia y justificación.
+- docs/evidencias/ — capturas y archivos adjuntos.

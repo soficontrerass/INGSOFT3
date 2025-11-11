@@ -1,50 +1,49 @@
-# Decisiones de testing — TP06
+# Decisiones de testing — TP6
 
-Resumen
-- Backend: Jest + ts-jest para TypeScript. Tests unitarios para rutas/servicios, mocks de la capa DB.
-- Frontend: Vitest + @testing-library/react + happy-dom. Tests unitarios de componentes y hooks; MSW/vi.stubGlobal para mocks de red.
-- CI: GitHub Actions ejecuta tests y sube artefactos de coverage.
-
-Frameworks y justificación
-- Jest + ts-jest: soporte TS, integración sencilla, generación de coverage.
-- Vitest: rápida integración con Vite/React y API similar a Jest.
-- @testing-library/react: pruebas centradas en el usuario.
-- MSW (recomendado): mocks de red realistas para tests de integración sin backend.
+Resumen ejecutivo
+- Backend: Jest + ts-jest (TypeScript). Tests de rutas y servicios; mockeo de la capa de BD con jest.mock.
+- Frontend: Vitest + @testing-library/react. Tests de componentes y flujos fetch; uso de vi.stubGlobal('fetch') en unit tests (MSW recomendado para integración).
+- Objetivo alcanzado: cobertura de tests en backend y frontend (100% en backend; 100% en client según reporte local).
 
 Estrategia de mocking
-- Backend: mockear el módulo de acceso a BD (pg) en los tests unitarios (jest.mock o sinon).
-- Frontend:
-  - Unit tests: vi.stubGlobal('fetch') o mocks locales por test.
-  - Integración: usar MSW para simular endpoints /api/forecasts, /api/health.
-- Evitar llamadas de red reales en unit tests; sólo integración end-to-end debe usar backend levantado.
+- Backend: mockeo del módulo src/db (export query) con jest.mock(...) en cada suite. Tests controlan respuestas/respuestas rechazadas para cubrir success / error / edge cases.
+- Frontend: stub global de fetch con vi.stubGlobal en tests unitarios (cubre loading / success / HTTP error / network error). Para pruebas de integración usar MSW (no implementado aquí pero recomendado).
 
-Casos de prueba clave (ejemplos)
+Casos de prueba clave implementados
 - Backend:
-  - Servicio de forecasts: respuesta con datos, respuesta vacía, error de BD -> lanzado/capturado.
-  - Rutas: /api/forecasts responde 200 con array; /api/health responde ok.
-- Frontend:
-  - Componente principal (App): renderiza, muestra loader, muestra lista tras fetch.
-  - Formulario: validaciones y errores visibles.
-  - Manejo de errores de red: mostrar mensaje cuando fetch falla.
+  - GET /api/health: sin DB configurada (ok), con DB configurada (SELECT 1) y caso de error (500).
+  - GET /api/forecasts: retorno con { rows }, retorno con array directo, retorno undefined, y caso DB error (500).
+  - Servicio getForecasts: success + DB rejection (throws).
+- Frontend (App.tsx):
+  - flujo loading → fetch ok → render lista (ej.: Sunny 20°C).
+  - respuesta HTTP no-ok (HTTP 500) → muestra error.
+  - fetch rechazado → muestra error.
 
-CI / Evidencias
-- GitHub Actions ejecuta `npm run test:ci` en server y client y sube carpetas `coverage` como artifacts.
-- Incluir capturas de pantalla en `/docs/evidencias/` y referencias en este archivo.
+Comandos para reproducir localmente (PowerShell, Windows)
+- Backend
+  cd C:\INGSOFT3\ingsoft3\TP6\server
+  npm ci
+  npm run test         # desarrollo
+  npm run test:ci      # con coverage (CI)
 
-Cómo reproducir localmente (resumen)
-- Server:
-  - cd TP6/server
-  - npm ci
-  - npm run test        # unit tests
-  - npm run test:ci     # coverage
-- Client:
-  - cd TP6/client
-  - npm ci
-  - npm run test        # vitest interactive
-  - npm run test:ci     # vitest --run --coverage
+- Frontend
+  cd C:\INGSOFT3\ingsoft3\TP6\client
+  npm ci
+  npm run test         # vitest watch
+  npm run test:ci      # run + coverage
 
 Evidencias
-- Agregar screenshots de GitHub Actions (artifacts `backend-coverage` y `frontend-coverage`) en `/docs/evidencias` y referencias aquí.
+- Cobertura frontend:
+  ![Coverage Frontend](evidencias/coveragefrontend.png)
+- Cobertura backend:
+  ![Coverage Backend](evidencias/coveragebackend.png)
+  
+Decisiones técnicas y justificación (breve)
+- Jest/ts-jest: integración estable con TypeScript, fácil mocking y cobertura.
+- Vitest + Testing Library: velocidad y API compatible con Vite/React, pruebas orientadas a usuario.
+- Mocking: aislar I/O (DB y fetch) en unit tests acelera ejecución y evita dependencias externas.
+- CI: ejecutar npm run test:ci en server y client; subir artifacts coverage (ya configurado en workflow).
 
-Notas finales
-- Objetivo: cubrir lógica de negocio y rutas críticas en backend; componentes y flujos UX en frontend. Priorizar casos de error y edge cases.
+Notas para la entrega y defensa
+- Explicar por cada test qué se arregla: qué se mockea, qué se valida y por qué (Arrange / Act / Assert).
+- Mostrar las capturas en /TP6/evidencias y el HTML de coverage si es necesario (coverage/lcov-report/index.html).
