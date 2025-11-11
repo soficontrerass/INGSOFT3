@@ -10,7 +10,7 @@
     "migrate": "npm run build && node dist/migrate.js",
     "test": "jest --runInBand",
     "test:cov": "jest --coverage --runInBand",
-    "test:ci": "jest --coverage --runInBand"
+    "test:ci": "jest --config jest.config.cjs --runInBand --coverage"
   },
   "dependencies": {
     "cors": "^2.8.5",
