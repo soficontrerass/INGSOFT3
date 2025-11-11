@@ -82,12 +82,13 @@ jobs:
         uses: cypress-io/github-action@v6
         with:
           working-directory: TP7/client
-          start: npm --prefix TP7/server run start
+          # ejecutar el servidor relativo a TP7/client -> ../server
+          start: npm --prefix ../server run start
           wait-on: 'http://localhost:8080'
           wait-on-timeout: 60
           browser: chrome
           record: false
-
+          
       - name: Stop backend
         if: always()
         run: |
