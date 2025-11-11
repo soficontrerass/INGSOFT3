@@ -1,5 +1,5 @@
 // ...existing code...
-# TP6 — Pruebas Unitarias
+# TP7 — Pruebas Unitarias
 
 Resumen rápido
 - Backend: TypeScript + Jest (ts-jest). Cobertura: carpeta `server/coverage`.
