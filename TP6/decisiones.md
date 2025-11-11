@@ -1,104 +1,50 @@
-# decisiones.md — TP5 (resumen de decisiones técnicas)
+# Decisiones de testing — TP06
 
-Resumen ejecutivo
-- CI/CD: GitHub Actions (integración nativa con repo, control de approvals y secrets).
-- Plataforma: Google Cloud — Cloud Run (backend), Cloud SQL (Postgres), GCS (backups), Cloud Run Jobs (migraciones).
-- Motivación: despliegue serverless (Cloud Run) reduce operativa, permite revisiones por revisión (revisions) y control de tráfico (canary/rollback).
+Resumen
+- Backend: Jest + ts-jest para TypeScript. Tests unitarios para rutas/servicios, mocks de la capa DB.
+- Frontend: Vitest + @testing-library/react + happy-dom. Tests unitarios de componentes y hooks; MSW/vi.stubGlobal para mocks de red.
+- CI: GitHub Actions ejecuta tests y sube artefactos de coverage.
 
-Decisiones clave y razones
-1. GitHub Actions
-   - Razón: fácil integración con repo, Secrets gestionados, environments con aprobaciones manuales.
-   - Trade-off: gestión de credenciales (usar SA JSON en secrets).
+Frameworks y justificación
+- Jest + ts-jest: soporte TS, integración sencilla, generación de coverage.
+- Vitest: rápida integración con Vite/React y API similar a Jest.
+- @testing-library/react: pruebas centradas en el usuario.
+- MSW (recomendado): mocks de red realistas para tests de integración sin backend.
 
-2. Cloud Run + Cloud SQL
-   - Cloud Run: autoscaling, gestión por revisiones, fácil rollback.
-   - Cloud SQL: Postgres gestionado, backups y conexión Cloud SQL para producción.
-   - Trade-off: Cloud SQL requiere configuración IAM y service agents para export.
+Estrategia de mocking
+- Backend: mockear el módulo de acceso a BD (pg) en los tests unitarios (jest.mock o sinon).
+- Frontend:
+  - Unit tests: vi.stubGlobal('fetch') o mocks locales por test.
+  - Integración: usar MSW para simular endpoints /api/forecasts, /api/health.
+- Evitar llamadas de red reales en unit tests; sólo integración end-to-end debe usar backend levantado.
 
-3. Backups a GCS
-   - Export de BD a bucket GCS para snapshot antes de migraciones.
-   - Problema resuelto: permisos — se añadieron roles/storage.objectCreator al Cloud SQL service agent y a la SA de la instancia; también permiso al SA de Actions.
+Casos de prueba clave (ejemplos)
+- Backend:
+  - Servicio de forecasts: respuesta con datos, respuesta vacía, error de BD -> lanzado/capturado.
+  - Rutas: /api/forecasts responde 200 con array; /api/health responde ok.
+- Frontend:
+  - Componente principal (App): renderiza, muestra loader, muestra lista tras fetch.
+  - Formulario: validaciones y errores visibles.
+  - Manejo de errores de red: mostrar mensaje cuando fetch falla.
 
-4. Migraciones
-   - Ejecutar migraciones con Cloud Run Job (tp5-migrate-prod) apuntando a la instancia prod.
-   - Estrategia: crear backup → desplegar nueva revisión con canary 10% → ejecutar migración en Job → smoke-tests → promote 100% o rollback.
+CI / Evidencias
+- GitHub Actions ejecuta `npm run test:ci` en server y client y sube carpetas `coverage` como artifacts.
+- Incluir capturas de pantalla en `/docs/evidencias/` y referencias en este archivo.
 
-5. Aprobaciones y gates
-   - Environment `prod` en GitHub con reviewers obligatorios.
-   - Humanos revisan logs, backups y smoke-tests antes de aprobar.
+Cómo reproducir localmente (resumen)
+- Server:
+  - cd TP6/server
+  - npm ci
+  - npm run test        # unit tests
+  - npm run test:ci     # coverage
+- Client:
+  - cd TP6/client
+  - npm ci
+  - npm run test        # vitest interactive
+  - npm run test:ci     # vitest --run --coverage
 
-6. Rollback
-   - Mantener PREV_REVISION en el workflow y usar gcloud run services update-traffic para forzar 100% al anterior.
-   - Caso de rollback automático: migración falla → rollback del tráfico y fail del job.
+Evidencias
+- Agregar screenshots de GitHub Actions (artifacts `backend-coverage` y `frontend-coverage`) en `/docs/evidencias` y referencias aquí.
 
-Seguridad / Secrets
-- Secrets en GitHub: SA JSON, DB passwords, bucket name.
-- Principio: mínimo privilegio en SAs; solo roles necesarios para cada acción (cloudsql.client/admin solo donde hace falta).
-
-Problemas encontrados y soluciones
-- 403/412 en gcloud sql export: causado por falta de permisos del Cloud SQL service agent y/o la SA de la instancia. Solución: crear service identity (gcloud alpha services identity create ...) y dar roles/storage.objectCreator al agent y a la SA de la instancia; alternativamente usar cloud_sql_proxy+pg_dump (usado como workaround).
-- Edición de IAM bucket desde PowerShell: diferencias de sintaxis entre gsutil y gcloud; preferir gcloud storage o usar gsutil con formato MEMBER:ROLE.
-
-Pruebas realizadas
-- Export manual con gcloud sql export (exitoso tras configurar IAM).
-- Dump por cloud_sql_proxy + pg_dump (exitoso, usado para testing).
-- Backups verificados en GCS y listados.
-
-Checklist de entrega (lo que se presentó)
-- Pipeline: .github/workflows/deploy.yml (QA automático, PROD con approval).
-- Recursos: Cloud Run service `tp5-server`, Cloud SQL instance `tp5-sql-prod`, GCS bucket `tp5-db-backups-ingsoft3-tp5-sof-us-central1`.
-- Evidencias: export exitoso, backups en GCS, logs de cloud_sql_proxy/pg_dump, bindings IAM aplicados.
-
-Preguntas para la defensa (respuestas preparadas)
-- ¿Por qué GitHub Actions? integración repo + approvals + secrets.
-- ¿Cómo manejás secretos? GitHub Secrets + mínimo privilegio en SAs.
-- ¿Criterios para aprobar a prod? backup verificado + QA smoke-tests OK + revisión de logs.
-- ¿Rollback? Forzar tráfico a PREV_REVISION y (si aplica) revertir DB mediante backup o scripts de rollback.
-
-Estado actual y pasos pendientes (recomendado)
-- Estado: infraestructura creada, IAM ajustado, backups funcionales, workflow configurado.
-- Pendientes: añadir capturas (evidencias), completar README con OWNER/REPO y URLs finales, confirmar reviewers en environment `prod`.
-- Recomendado para cierre: ejecutar workflow final, tomar capturas y preparar defensa.
-
-// ...existing code...
-## Evidencias
-
-Las capturas relevantes están en `TP5/evidencias/`. Ábrelas en el orden indicado durante la defensa.
-
-- Workflow y artifacts (build → deploy):
-![Workflow: build → deploy QA → deploy PROD](evidencias/artifacts.png)
-
-- Workflow esperando aprobación a Producción:
-![Workflow esperando aprobación a producción](evidencias/actions_prod_waiting_approval.png)
-
-- Modal de aprobación en GitHub Actions:
-![Modal de aprobación en GitHub Actions](evidencias/actions_approve_modal.png)
-
-- Servicio en Cloud Run (URL, revisión, tráfico):
-![Cloud Run service overview](evidencias/cloudrun_service.png)
-
-- Health check del servicio (usar la URL en vivo durante la demo):
-(Ver `TP5/server/src/routes/api.ts` para el endpoint /health)
-
-- Cloud SQL — instancia y export/backup:
-![Cloud SQL instance overview](evidencias/cloudsql_instance.png)
-![Cloud SQL export operation](evidencias/cloudsql_export_operation.png)
-
-- Backups en GCS y propiedades del objeto:
-![Lista de backups en Cloud Storage](evidencias/gcs_bucket_list.png)
-![Propiedades del backup en GCS](evidencias/gcs_backup_properties.png)
-
-- Variables/Secrets y IAM:
-![Variables y secrets por entorno](evidencias/enviroments_secrets.png)
-![Service Accounts y roles IAM](evidencias/iam_service_accounts.png)
-
-- Migraciones (job) — ejecución y logs:
-![Ejecución del job de migración](evidencias/run_job_migrate.png)
-
-Cómo usarlas en la defensa 
-1. Abrir `TP5/evidencias/artifacts.png` (build/artifacts).  
-2. Mostrar `TP5/evidencias/cloudrun_service.png` y llamar en vivo al endpoint /health.  
-3. Mostrar `TP5/evidencias/actions_prod_waiting_approval.png` y `TP5/evidencias/actions_approve_modal.png`.  
-4. Mostrar backups: `TP5/evidencias/gcs_bucket_list.png`, `TP5/evidencias/gcs_backup_properties.png`, y `TP5/evidencias/cloudsql_export_operation.png`.  
-5. Mostrar permisos: `TP5/evidencias/iam_service_accounts.png` y `TP5/evidencias/enviroments_secrets.png`.  
-6. Finalizar con `TP5/evidencias/run_job_migrate.png` (migraciones).
+Notas finales
+- Objetivo: cubrir lógica de negocio y rutas críticas en backend; componentes y flujos UX en frontend. Priorizar casos de error y edge cases.
