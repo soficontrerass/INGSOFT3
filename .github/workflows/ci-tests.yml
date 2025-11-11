@@ -20,6 +20,14 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      - name: Cache backend node_modules
+        uses: actions/cache@v4
+        with:
+          path: TP6/server/node_modules
+          key: ${{ runner.os }}-node-${{ matrix.node-version }}-server-${{ hashFiles('TP6/server/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ matrix.node-version }}-server-
+
       - name: Install & Test backend
         working-directory: ./TP6/server
         run: |
@@ -34,6 +42,14 @@ jobs:
         with:
           name: backend-coverage
           path: TP6/server/coverage
+
+      - name: Cache frontend node_modules
+        uses: actions/cache@v4
+        with:
+          path: TP6/client/node_modules
+          key: ${{ runner.os }}-node-${{ matrix.node-version }}-client-${{ hashFiles('TP6/client/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ matrix.node-version }}-client-
 
       - name: Install & Test frontend
         working-directory: ./TP6/client

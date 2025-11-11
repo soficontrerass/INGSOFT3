@@ -2,7 +2,7 @@
 // Archivo: ingsoft3/TP6/server/jest.config.test.cjs
 
 const path = require('path');
-const config = require('jest.config.cjs');
+const config = require(path.resolve(__dirname, './jest.config.cjs'));
 
 describe('jest.config.cjs', () => {
   test('exports an object', () => {
