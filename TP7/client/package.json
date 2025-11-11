@@ -3,10 +3,11 @@
     "version":  "0.1.0",
     "private":  true,
     "scripts":  {
-                    "dev":  "vite",
+                    "test:ci":  "vitest --run --coverage",
+                    "cypress:run":  "cypress run --browser chrome",
                     "build":  "vite build",
-                    "test":  "vitest",
-                    "test:ci":  "vitest --run --coverage"
+                    "dev":  "vite",
+                    "test":  "vitest"
                 },
     "dependencies":  {
                          "env":  "^0.0.2",
