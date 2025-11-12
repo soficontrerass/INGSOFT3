@@ -47,10 +47,23 @@ jobs:
           cd TP7/client
           npm ci
 
-      - name: Run client tests (Vitest + coverage)
+      - name: Run client tests (Vitest + coverage) - debug
         run: |
+          echo "=== pwd ==="
+          pwd
+          echo "=== node / npm versions ==="
+          node -v
+          npm -v
+          echo "=== show client package.json ==="
+          sed -n '1,200p' TP7/client/package.json || true
+          echo "=== ls client dir ==="
+          ls -la TP7/client || true
+          echo "=== ensure deps installed (debug) ==="
           cd TP7/client
-          npm run test:ci
+          npm ci
+          echo "=== run tests verbose ==="
+          # run tests with verbose output and print logs on failure
+          npm run test:ci -- --runInBand --reporter verbose || (echo "Tests failed, printing npm debug log if exists" && ls -la ./npm-debug.log || true && exit 1)
 
       - name: Upload client coverage artifact
         uses: actions/upload-artifact@v4
