@@ -12,17 +12,19 @@ async function runMigration() {
     const sql = await fs.readFile(migrationFile, 'utf8');
 
     // soporta distintas APIs en db.ts (open / connect / openDb)
-    const openFn = (db as any).open || (db as any).connect || (db as any).openDb;
-    if (!openFn) throw new Error('DB open function not found in ./db (expected open/connect/openDb)');
+    const openFn = (db as any).open || (db as any).connect || (db as any).openDb || (db as any).getConnection;
+    if (!openFn) throw new Error('DB open function not found in ./db (expected open/connect/openDb/getConnection)');
 
     conn = await openFn();
-    // intenta usar exec en la conexión; si la API es distinta, ajustá según tu db.ts
-    if (typeof conn.exec !== 'function' && typeof conn.run === 'function') {
-      await conn.run(sql);
-    } else if (typeof conn.exec === 'function') {
+    // intenta usar exec/run/query en la conexión; ejecuta el SQL
+    if (typeof conn.exec === 'function') {
       await conn.exec(sql);
+    } else if (typeof conn.run === 'function') {
+      await conn.run(sql);
+    } else if (typeof conn.query === 'function') {
+      await conn.query(sql);
     } else {
-      throw new Error('DB connection object has no exec/run method');
+      throw new Error('DB connection object has no exec/run/query method');
     }
 
     console.log('Migration applied');
@@ -38,14 +40,19 @@ async function runMigration() {
       } else if (typeof (db as any).close === 'function') {
         await (db as any).close();
       }
-    } catch (e) {
+    } catch (_) {
       // noop: no queremos ocultar el error principal por un fallo al cerrar
     }
   }
 }
 
+// export que el test espera
+export async function run() {
+  return runMigration();
+}
+
 if (require.main === module) {
-  runMigration().catch(() => { process.exitCode = 1; });
+  run().catch(() => { process.exitCode = 1; });
 }
 
 export { runMigration };
