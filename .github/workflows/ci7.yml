@@ -69,6 +69,38 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+      - name: Check SonarCloud Quality Gate
+        if: always()
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          # reemplazar por tu sonar.projectKey si es distinto
+          SONAR_PROJECT_KEY="soficontrerass"
+          echo "Checking SonarCloud Quality Gate for $SONAR_PROJECT_KEY"
+          sudo apt-get update -y
+          sudo apt-get install -y jq curl
+          MAX_ATTEMPTS=12
+          SLEEP_SEC=5
+          attempt=0
+          status=""
+          resp=""
+          while [ $attempt -lt $MAX_ATTEMPTS ]; do
+            attempt=$((attempt+1))
+            echo "Attempt $attempt/$MAX_ATTEMPTS..."
+            resp=$(curl -s -u "$SONAR_TOKEN:" "https://sonarcloud.io/api/qualitygates/project_status?projectKey=${SONAR_PROJECT_KEY}")
+            status=$(echo "$resp" | jq -r '.projectStatus.status' 2>/dev/null || echo "")
+            if [ "$status" = "OK" ] || [ "$status" = "ERROR" ]; then
+              break
+            fi
+            sleep $SLEEP_SEC
+          done
+          echo "SonarCloud quality gate status: '$status'"
+          if [ "$status" != "OK" ]; then
+            echo "Quality Gate NOT OK. Response:"
+            echo "$resp"
+            exit 1
+          fi
+
       - name: Start backend for E2E
         run: |
           cd TP7/server
