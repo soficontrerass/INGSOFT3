@@ -1,5 +1,6 @@
-import path from 'path';
-import { promises as fs } from 'fs';
+// ...existing code...
+import path from 'node:path';
+import { promises as fs } from 'node:fs';
 
 async function runMigration() {
   const migrationsDir = path.join(__dirname, 'migrations');
@@ -74,8 +75,20 @@ export async function run() {
   return runMigration();
 }
 
+// Nuevo helper nombrado para poder cubrirlo en tests
+export async function main() {
+  try {
+    await run();
+  } catch (err) {
+    process.exitCode = 1;
+    throw err;
+  }
+}
+
 if (require.main === module) {
-  run().catch(() => { process.exitCode = 1; });
+  // usamos main() (exportado) en lugar de llamar run() inline
+  main().catch(() => { /* process.exitCode ya seteado en main */ });
 }
 
 export { runMigration };
+// ...existing code...
