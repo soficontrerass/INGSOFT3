@@ -1,26 +1,44 @@
 jest.resetModules();
 
-describe('migrate', () => {
-  test('runs migrations and calls db.query and db.close', async () => {
+describe('migrate.run', () => {
+  afterEach(() => {
+    jest.resetAllMocks();
+    jest.resetModules();
+  });
+
+  test('applies migration and calls db.query and db.close', async () => {
+    // mock fs.promises.readFile
+    jest.doMock('node:fs', () => ({
+      promises: { readFile: jest.fn().mockResolvedValue('CREATE TABLE test();') }
+    }), { virtual: true });
+
     const mockedQuery = jest.fn().mockResolvedValue(undefined);
     const mockedClose = jest.fn().mockResolvedValue(undefined);
-
     jest.doMock('../db', () => ({ query: mockedQuery, close: mockedClose }), { virtual: true });
 
-    // require después de mockear
+    // require después de los mocks
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mig = require('../migrate');
 
-    if (typeof mig.run === 'function') {
-      await mig.run();
-    } else {
-      // compatibilidad: si por alguna razón el módulo aún ejecuta al importar,
-      // esperar un tick para que termine la ejecución asíncrona.
-      await new Promise((r) => setTimeout(r, 50));
-    }
+    await mig.run();
 
-    expect(mockedQuery).toHaveBeenCalled();
+    expect(mockedQuery).toHaveBeenCalledWith('CREATE TABLE test();');
     expect(mockedClose).toHaveBeenCalled();
+  });
 
-    jest.dontMock('../db');
+  test('still calls db.close when query throws', async () => {
+    jest.doMock('node:fs', () => ({
+      promises: { readFile: jest.fn().mockResolvedValue('SQL;') }
+    }), { virtual: true });
+
+    const mockedQuery = jest.fn().mockRejectedValue(new Error('query failed'));
+    const mockedClose = jest.fn().mockResolvedValue(undefined);
+    jest.doMock('../db', () => ({ query: mockedQuery, close: mockedClose }), { virtual: true });
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mig = require('../migrate');
+
+    await expect(mig.run()).rejects.toThrow(/query failed/);
+    expect(mockedClose).toHaveBeenCalled();
   });
 });
