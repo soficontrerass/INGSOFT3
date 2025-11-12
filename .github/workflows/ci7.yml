@@ -2,7 +2,7 @@ name: CI7 - tests, coverage, SonarCloud, Cypress
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, restore-c55075c2 ]
   pull_request:
 
 jobs:
