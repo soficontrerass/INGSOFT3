@@ -67,7 +67,7 @@ jobs:
           if [ -f server/coverage/lcov.info ]; then sed -i 's#\\\\#/#g' server/coverage/lcov.info || true; fi
           if [ -f client/coverage/lcov.info ]; then sed -i 's#\\\\#/#g' client/coverage/lcov.info || true; fi
 
-      - name: Debug: show server coverage file
+      - name: Debug:show server coverage file
         run: |
           echo "PWD: $(pwd)"
           ls -la TP7/server/coverage || true
