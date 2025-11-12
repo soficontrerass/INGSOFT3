@@ -11,7 +11,7 @@ async function runMigration() {
     console.log(`Running migration ${path.basename(migrationFile)}`);
     const sql = await fs.readFile(migrationFile, 'utf8');
 
-    // soporta distintas APIs en db.ts (open / connect / openDb)
+    // soporta distintas APIs en db.ts (open / connect / openDb / getConnection)
     const openFn = (db as any).open || (db as any).connect || (db as any).openDb || (db as any).getConnection;
     if (!openFn) throw new Error('DB open function not found in ./db (expected open/connect/openDb/getConnection)');
 
@@ -29,6 +29,7 @@ async function runMigration() {
 
     console.log('Migration applied');
   } catch (err: any) {
+    // manejar/loggear el error y re-lanzarlo para que el proceso llamante lo sepa
     console.error('Migration failed', err);
     throw err;
   } finally {
@@ -46,7 +47,7 @@ async function runMigration() {
   }
 }
 
-// export que el test espera
+// export que esperan los tests
 export async function run() {
   return runMigration();
 }
