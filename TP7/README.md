@@ -8,14 +8,14 @@ Resumen rápido
 Cómo ejecutar tests (local)
 - Server:
   ```powershell
-  cd C:\INGSOFT3\ingsoft3\TP6\server
+  cd C:\INGSOFT3\ingsoft3\TP7\server
   npm ci
   npm run test        # modo desarrollo
   npm run test:ci     # run + coverage (CI)
   ```
 - Client:
   ```powershell
-  cd C:\INGSOFT3\ingsoft3\TP6\client
+  cd C:\INGSOFT3\ingsoft3\TP7\client
   npm ci
   npm run test        # vitest watch
   npm run test:ci     # run + coverage
