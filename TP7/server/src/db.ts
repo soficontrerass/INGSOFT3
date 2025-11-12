@@ -15,7 +15,7 @@ function getPool(): Pool {
       password: process.env.DB_PASS,
       database: process.env.DB_NAME,
       host: process.env.DB_HOST,
-      port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
+      port: process.env.DB_PORT ? Number.parseInt(process.env.DB_PORT, 10) : 5432,
     });
   } else {
     // No DB configured: create a dummy pool that throws on query to avoid silent failures

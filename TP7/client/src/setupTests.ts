@@ -2,9 +2,7 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
-// ...existing code...
-// Stub global fetch so tests don't need a running backend.
-// Ajustá las rutas/respuestas según tu API real.
+// (No redundant assertions here.)
 vi.stubGlobal('fetch', async (input: RequestInfo) => {
   const url = typeof input === 'string' ? input : (input as Request).url ?? '';
   if (url.includes('/api/forecasts') || url.includes('/weatherforecast')) {

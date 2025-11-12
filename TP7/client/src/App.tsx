@@ -1,3 +1,4 @@
+// ...existing code...
 import React, { useEffect, useState } from 'react';
 
 type Forecast = {
@@ -6,7 +7,17 @@ type Forecast = {
   summary: string;
 };
 
-const API = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8080';
+// robust API URL resolver (no rompe si import.meta.env no está definido)
+const API = (() => {
+  try {
+    // evitar errores de tipo en TS y acceder de forma segura
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const env = (import.meta as any)?.env;
+    return env?.VITE_API_URL || 'http://localhost:8080';
+  } catch {
+    return 'http://localhost:8080';
+  }
+})();
 
 export default function App() {
   const [items, setItems] = useState<Forecast[] | null>(null);
@@ -30,8 +41,8 @@ export default function App() {
       {!items && !error && <div>Cargando...</div>}
       {items && (
         <ul>
-          {items.map((f, i) => (
-            <li key={i}>
+          {items.map((f) => (
+            <li key={f.date}>
               <strong>{new Date(f.date).toLocaleDateString()}</strong> — {f.temperatureC}°C — {f.summary}
             </li>
           ))}
@@ -40,3 +51,4 @@ export default function App() {
     </div>
   );
 }
+// ...existing code...
