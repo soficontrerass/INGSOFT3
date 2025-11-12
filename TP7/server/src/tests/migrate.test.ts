@@ -1,27 +1,26 @@
 jest.resetModules();
 
-// mockear db con query y close (migrate llama a close en tu código)
-jest.mock('../db', () => ({ query: jest.fn(), close: jest.fn() }));
-import { query, close } from '../db';
-
 describe('migrate', () => {
-  it('runs migrations and calls db.query and db.close', async () => {
-    (query as jest.Mock).mockResolvedValueOnce({});
-    // require migrate después de mockear db
-    const migrate = require('../migrate');
+  test('runs migrations and calls db.query and db.close', async () => {
+    const mockedQuery = jest.fn().mockResolvedValue(undefined);
+    const mockedClose = jest.fn().mockResolvedValue(undefined);
 
-    if (typeof migrate.runMigrations === 'function') {
-      await expect(migrate.runMigrations()).resolves.not.toThrow();
-      expect(query).toHaveBeenCalled();
-      // si migrate llama a close al final
-      expect(close).toHaveBeenCalled();
-    } else if (typeof migrate.default === 'function') {
-      await expect(migrate.default()).resolves.not.toThrow();
-      expect(query).toHaveBeenCalled();
-      expect(close).toHaveBeenCalled();
+    jest.doMock('../db', () => ({ query: mockedQuery, close: mockedClose }), { virtual: true });
+
+    // require después de mockear
+    const mig = require('../migrate');
+
+    if (typeof mig.run === 'function') {
+      await mig.run();
     } else {
-      // si ejecuta en import
-      expect(query).toHaveBeenCalled();
+      // compatibilidad: si por alguna razón el módulo aún ejecuta al importar,
+      // esperar un tick para que termine la ejecución asíncrona.
+      await new Promise((r) => setTimeout(r, 50));
     }
+
+    expect(mockedQuery).toHaveBeenCalled();
+    expect(mockedClose).toHaveBeenCalled();
+
+    jest.dontMock('../db');
   });
 });
