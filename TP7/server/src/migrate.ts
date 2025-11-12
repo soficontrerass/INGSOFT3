@@ -11,12 +11,22 @@ async function runMigration() {
     console.log(`Running migration ${path.basename(migrationFile)}`);
     const sql = await fs.readFile(migrationFile, 'utf8');
 
-    // soporta distintas APIs en db.ts (open / connect / openDb / getConnection)
+    // If db module provides a simple query/close API (expected by tests), use it.
+    if (typeof (db as any).query === 'function') {
+      await (db as any).query(sql);
+      if (typeof (db as any).close === 'function') {
+        await (db as any).close();
+      }
+      console.log('Migration applied');
+      return;
+    }
+
+    // Otherwise, fall back to opening a connection and executing SQL.
     const openFn = (db as any).open || (db as any).connect || (db as any).openDb || (db as any).getConnection;
     if (!openFn) throw new Error('DB open function not found in ./db (expected open/connect/openDb/getConnection)');
 
     conn = await openFn();
-    // intenta usar exec/run/query en la conexión; ejecuta el SQL
+
     if (typeof conn.exec === 'function') {
       await conn.exec(sql);
     } else if (typeof conn.run === 'function') {
@@ -29,20 +39,19 @@ async function runMigration() {
 
     console.log('Migration applied');
   } catch (err: any) {
-    // manejar/loggear el error y re-lanzarlo para que el proceso llamante lo sepa
     console.error('Migration failed', err);
     throw err;
   } finally {
     try {
-      // intentamos cerrar la conexión de varias formas
       if (conn) {
         if (typeof conn.close === 'function') await conn.close();
         else if (typeof conn.end === 'function') await conn.end();
       } else if (typeof (db as any).close === 'function') {
+        // If we used db.query path earlier, close already called; this is a safe no-op.
         await (db as any).close();
       }
     } catch (_) {
-      // noop: no queremos ocultar el error principal por un fallo al cerrar
+      // noop: don't hide the main error
     }
   }
 }
