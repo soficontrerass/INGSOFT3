@@ -61,11 +61,27 @@ jobs:
       - name: Check coverage thresholds (server & client)
         run: node TP7/tools/check-coverage.js
 
+      - name: Normalize LCOV paths for Sonar (replace backslashes -> forward slashes)
+        run: |
+          cd TP7
+          if [ -f server/coverage/lcov.info ]; then sed -i 's#\\\\#/#g' server/coverage/lcov.info || true; fi
+          if [ -f client/coverage/lcov.info ]; then sed -i 's#\\\\#/#g' client/coverage/lcov.info || true; fi
+
+      - name: Debug: show server coverage file
+        run: |
+          echo "PWD: $(pwd)"
+          ls -la TP7/server/coverage || true
+          echo "---- head of lcov ----"
+          if [ -f TP7/server/coverage/lcov.info ]; then head -n 40 TP7/server/coverage/lcov.info; else echo "no lcov for server"; fi
+
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
         with:
           projectBaseDir: TP7
-          args: -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+          args: >-
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+            -Dsonar.sources=server/src,client/src
+            -Dsonar.javascript.lcov.reportPaths=server/coverage/lcov.info,client/coverage/lcov.info
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
@@ -114,7 +130,6 @@ jobs:
         uses: cypress-io/github-action@v6
         with:
           working-directory: TP7/client
-          # No start (backend ya arrancado por otro step). Solo esperar.
           wait-on: 'http://localhost:8080'
           wait-on-timeout: 60
           browser: chrome
