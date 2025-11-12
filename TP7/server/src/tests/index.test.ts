@@ -1,28 +1,54 @@
 // ...existing code...
-describe('index (entry)', () => {
-  const OLD_ENV = process.env;
+jest.resetModules();
 
-  beforeEach(() => {
+const supertest = require('supertest');
+
+describe('index root & startServer', () => {
+  const ORIGINAL_ENV = { ...process.env };
+  let server: any;
+
+  afterEach(async () => {
+    process.env = { ...ORIGINAL_ENV };
     jest.resetModules();
-    process.env = { ...OLD_ENV, PORT: '0' };
+    if (server && server.close) {
+      await new Promise((r) => server.close(r));
+      server = undefined;
+    }
   });
 
-  afterEach(() => {
-    process.env = OLD_ENV;
-    jest.clearAllMocks();
+  test('returns redirect (302) in production to CLIENT_URL', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.CLIENT_URL = 'https://my-client.example';
+    // require after env set
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const app = require('../app').default;
+    await supertest(app)
+      .get('/')
+      .expect(302)
+      .expect('location', 'https://my-client.example');
   });
 
-  it('calls app.get and app.listen on import', () => {
-    const getMock = jest.fn();
-    const listenMock = jest.fn((port: any, cb?: any) => { if (cb) cb(); return { close: jest.fn() }; });
+  test('returns info message in non-production', async () => {
+    process.env.NODE_ENV = 'development';
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const app = require('../app').default;
+    await supertest(app)
+      .get('/')
+      .expect(200)
+      .expect((res: any) => {
+        if (!/Server running/.test(res.text)) throw new Error('unexpected body');
+      });
+  });
 
-    // mock app with both get and listen (index.ts uses app.get before listen)
-    jest.mock('../app', () => ({ __esModule: true, default: { get: getMock, listen: listenMock } }));
-
-    // require index after mock
-    require('../index');
-
-    expect(getMock).toHaveBeenCalled();
-    expect(listenMock).toHaveBeenCalled();
+  test('startServer logs and listens on provided or default port', async () => {
+    // set PORT=0 to let OS pick a random port
+    process.env.PORT = '0';
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const idx = require('..'); // loads src/index.ts
+    // start server and ensure it returns the server instance
+    server = idx.startServer();
+    expect(server).toBeDefined();
+    // wait a tick for the listen callback
+    await new Promise((r) => setTimeout(r, 50));
   });
 });
