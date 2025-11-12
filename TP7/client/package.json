@@ -1,43 +1,46 @@
 {
-    "name":  "tp6-client",
-    "version":  "0.1.0",
-    "private":  true,
-    "scripts":  {
-                    "test:ci":  "vitest --run --coverage",
-                    "cypress:run":  "cypress run --browser chrome",
-                    "build":  "vite build",
-                    "dev":  "vite",
-                    "test":  "vitest"
-                },
-    "dependencies":  {
-                         "env":  "^0.0.2",
-                         "react":  "^18.2.0",
-                         "react-dom":  "^18.2.0",
-                         "react-router-dom":  "^7.9.5"
-                     },
-    "devDependencies":  {
-                            "vitest":  "^4.0.8",
-                            "@types/jest":  "^30.0.0",
-                            "@babel/preset-react":  "^7.28.5",
-                            "patch-package":  "^8.0.1",
-                            "happy-dom":  "^20.0.10",
-                            "babel-jest":  "^30.2.0",
-                            "jest-environment-jsdom":  "^30.2.0",
-                            "jsdom":  "^27.0.1",
-                            "@testing-library/jest-dom":  "^6.9.1",
-                            "@babel/preset-env":  "^7.28.5",
-                            "vite":  "^5.0.0",
-                            "@testing-library/user-event":  "^14.6.1",
-                            "@vitejs/plugin-react":  "^4.7.0",
-                            "jest":  "^30.2.0",
-                            "@vitest/coverage-v8":  "^4.0.8",
-                            "@babel/preset-typescript":  "^7.28.5",
-                            "typescript":  "^5.2.2",
-                            "parse5":  "6.0.1",
-                            "@testing-library/react":  "^16.3.0",
-                            "cypress":  "^15.6.0",
-                            "@types/react-router-dom":  "^5.3.3",
-                            "@types/react":  "^18.2.27",
-                            "@types/react-dom":  "^18.2.11"
-                        }
+  "name": "tp6-client",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test:ci": "vitest --run --coverage",
+    "cypress:run": "cypress run --browser chrome",
+    "build": "vite build",
+    "dev": "vite",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "env": "^0.0.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.9.5"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.8",
+    "@types/jest": "^30.0.0",
+    "@babel/preset-react": "^7.28.5",
+    "patch-package": "^8.0.1",
+    "happy-dom": "^20.0.10",
+    "babel-jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0",
+    "jsdom": "^27.0.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@babel/preset-env": "^7.28.5",
+    "vite": "^5.0.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitejs/plugin-react": "^4.7.0",
+    "jest": "^30.2.0",
+    "@vitest/coverage-v8": "^4.0.8",
+    "@babel/preset-typescript": "^7.28.5",
+    "typescript": "^5.2.2",
+    "parse5": "6.0.1",
+    "@testing-library/react": "^16.3.0",
+    "cypress": "^15.6.0",
+    "@types/react-router-dom": "^5.3.3",
+    "@types/react": "^18.2.27",
+    "@types/react-dom": "^18.2.11"
+  },
+  "vitest": {
+    "setupFiles": "./src/setupTests.ts"
+  }
 }

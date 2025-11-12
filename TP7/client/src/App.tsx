@@ -1,23 +1,14 @@
 // ...existing code...
 import React, { useEffect, useState } from 'react';
+import { getApiUrl } from './utils/getApiUrl';
+
+const API = getApiUrl();
 
 type Forecast = {
   date: string;
   temperatureC: number;
   summary: string;
 };
-
-// robust API URL resolver (no rompe si import.meta.env no está definido)
-const API = (() => {
-  try {
-    // evitar errores de tipo en TS y acceder de forma segura
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const env = (import.meta as any)?.env;
-    return env?.VITE_API_URL || 'http://localhost:8080';
-  } catch {
-    return 'http://localhost:8080';
-  }
-})();
 
 export default function App() {
   const [items, setItems] = useState<Forecast[] | null>(null);
