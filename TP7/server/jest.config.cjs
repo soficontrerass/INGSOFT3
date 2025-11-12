@@ -8,5 +8,6 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageReporters: ['json-summary', 'lcov', 'text'],
   collectCoverageFrom: ['src/**/*.{ts,js}'],
+  setupFiles: ['<rootDir>/src/tests/jest.setup.js'],
   coveragePathIgnorePatterns: ['/node_modules/']
 };
