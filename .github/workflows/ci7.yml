@@ -74,22 +74,13 @@ jobs:
       - name: Check coverage thresholds (server & client)
         run: node TP7/tools/check-coverage.js
 
-      - name: Normalize LCOV paths for Sonar (replace backslashes -> forward slashes)
+      - name: Normalize LCOV paths for Sonar (fix backslashes and add repo prefixes)
         run: |
           cd TP7
-
-          # server lcov: backslashes -> forward slashes
-          if [ -f server/coverage/lcov.info ]; then
-            sed -i 's#\\\\#/#g' server/coverage/lcov.info || true
-            # prefix SF:src/... -> SF:server/src/...
-            sed -i -E 's#^SF:src/#SF:server/src/#' server/coverage/lcov.info || true
-          fi
-
-          # client lcov: backslashes -> forward slashes
           if [ -f client/coverage/lcov.info ]; then
-            sed -i 's#\\\\#/#g' client/coverage/lcov.info || true
-            # prefix SF:src/... -> SF:client/src/...
-            sed -i -E 's#^SF:src/#SF:client/src/#' client/coverage/lcov.info || true
+            sed -i 's#\\#/#g' client/coverage/lcov.info || true
+            sed -i -E 's#^SF:(\./)?src/#SF:client/src/#' client/coverage/lcov.info || true
+            sed -i -E 's#^SF:.*client/src/#SF:client/src/#' client/coverage/lcov.info || true
           fi
           
       - name: Debug:show server coverage file

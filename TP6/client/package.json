@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "vite",
+    "test:ci": "vitest --run --coverage --include \"src/**/*.test.{ts,tsx,js,jsx}\"",
+    "cypress:run": "cypress run --browser chrome",
     "build": "vite build",
-    "test": "vitest",
-    "test:ci": "vitest --run --coverage"
+    "dev": "vite",
+    "test": "vitest"
   },
   "overrides": {
     "parse5": "6.0.1"
@@ -39,5 +40,13 @@
     "typescript": "^5.2.2",
     "vite": "^5.0.0",
     "vitest": "^4.0.8"
+  },
+  "vitest": {
+    "setupFiles": "./src/setupTests.ts",
+    "coverage": {
+      "provider": "v8",
+      "reporter": ["text", "lcov", "html"],
+      "reportsDirectory": "coverage"
+    }
   }
 }

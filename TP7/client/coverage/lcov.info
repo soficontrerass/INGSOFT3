@@ -1,5 +1,5 @@
 TN:
-SF:client/src/App.tsx
+SF:src\App.tsx
 FN:13,App
 FN:17,(anonymous_1)
 FN:19,(anonymous_2)
@@ -40,7 +40,7 @@ BRF:9
 BRH:9
 end_of_record
 TN:
-SF:client/src/utils/getApiUrl.ts
+SF:src\utils\getApiUrl.ts
 FN:1,getApiUrl
 FNF:1
 FNH:1
