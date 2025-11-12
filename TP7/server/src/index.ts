@@ -13,9 +13,9 @@ export function startServer() {
     console.log(`Server listening on port ${port} (FORECAST_COUNT=${process.env.FORECAST_COUNT || '5'})`);
   });
 
-  // copy runtime methods onto the exported wrapper so existing consumers/tests keep working
-  serverInstance.close = server.close && server.close.bind(server);
-  serverInstance.address = server.address && server.address.bind(server);
+  // Cambiado a optional chaining para satisfacer la regla de Sonar
+  serverInstance.close = server.close?.bind(server);
+  serverInstance.address = server.address?.bind(server);
   // keep a reference to the real server if needed
   serverInstance.__server = server;
 
