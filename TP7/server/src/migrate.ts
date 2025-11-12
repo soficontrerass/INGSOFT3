@@ -75,7 +75,7 @@ export async function run() {
   return runMigration();
 }
 
-// Nuevo helper nombrado para poder cubrirlo en tests
+// helper nombrado para facilitar tests y cobertura
 export async function main() {
   try {
     await run();
@@ -85,9 +85,15 @@ export async function main() {
   }
 }
 
+// handler nombrado para reemplazar la arrow function anónima en .catch
+// exportado para poder invocarlo desde tests y cubrirlo
+export function handleMainError(_: any) {
+  // noop — preserva comportamiento previo (no imprimir / no exit())
+}
+
 if (require.main === module) {
-  // usamos main() (exportado) en lugar de llamar run() inline
-  main().catch(() => { /* process.exitCode ya seteado en main */ });
+  // usar handler nombrado para que no quede función anónima sin cobertura
+  main().catch(handleMainError);
 }
 
 export { runMigration };
