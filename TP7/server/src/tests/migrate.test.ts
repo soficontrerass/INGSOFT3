@@ -1,39 +1,46 @@
-jest.resetModules();
+// ...existing code...
+export {}; // tratar como módulo
 
-describe('migrate.run', () => {
-  afterEach(() => {
-    jest.resetAllMocks();
-    jest.resetModules();
-  });
+const SQL = 'CREATE TABLE test();';
 
-  test('applies migration and calls db.query and db.close', async () => {
+beforeEach(() => {
+  jest.resetModules();
+  jest.clearAllMocks();
+});
+
+test('applies migration and calls db.query and db.close', async () => {
+  await jest.isolateModulesAsync(async () => {
     // mock fs.promises.readFile
-    jest.doMock('node:fs', () => ({
-      promises: { readFile: jest.fn().mockResolvedValue('CREATE TABLE test();') }
-    }), { virtual: true });
+    jest.doMock('fs', () => ({
+      promises: { readFile: jest.fn().mockResolvedValue(SQL) },
+    }));
 
     const mockedQuery = jest.fn().mockResolvedValue(undefined);
     const mockedClose = jest.fn().mockResolvedValue(undefined);
-    jest.doMock('../db', () => ({ query: mockedQuery, close: mockedClose }), { virtual: true });
 
-    // require después de los mocks
+    // mock ../db to provide query+close API expected by the test
+    jest.doMock('../db', () => ({ query: mockedQuery, close: mockedClose }));
+
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mig = require('../migrate');
 
     await mig.run();
 
-    expect(mockedQuery).toHaveBeenCalledWith('CREATE TABLE test();');
+    expect(mockedQuery).toHaveBeenCalledWith(SQL);
     expect(mockedClose).toHaveBeenCalled();
   });
+});
 
-  test('still calls db.close when query throws', async () => {
-    jest.doMock('node:fs', () => ({
-      promises: { readFile: jest.fn().mockResolvedValue('SQL;') }
-    }), { virtual: true });
+test('still calls db.close when query throws', async () => {
+  await jest.isolateModulesAsync(async () => {
+    jest.doMock('fs', () => ({
+      promises: { readFile: jest.fn().mockResolvedValue(SQL) },
+    }));
 
     const mockedQuery = jest.fn().mockRejectedValue(new Error('query failed'));
     const mockedClose = jest.fn().mockResolvedValue(undefined);
-    jest.doMock('../db', () => ({ query: mockedQuery, close: mockedClose }), { virtual: true });
+
+    jest.doMock('../db', () => ({ query: mockedQuery, close: mockedClose }));
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mig = require('../migrate');
@@ -42,3 +49,4 @@ describe('migrate.run', () => {
     expect(mockedClose).toHaveBeenCalled();
   });
 });
+// ...existing code...
