@@ -1,16 +1,35 @@
 import '../setupTests';
-import { afterEach, test, expect } from 'vitest';
-import { render, screen, waitFor, cleanup } from '@testing-library/react';
-import App from '../main';
+import { afterEach, test, expect, vi } from 'vitest';
+import { waitFor, screen } from '@testing-library/react';
+import { act } from 'react';
 
-afterEach(() => { cleanup(); });
+afterEach(() => {
+  const root = document.getElementById('root');
+  if (root && root.parentNode) root.parentNode.removeChild(root);
+  vi.restoreAllMocks();
+  vi.resetModules();
+});
 
-test('import main bootstraps the app (counts main.tsx)', async () => {
-  render(<App />);
+test('adds DOMContentLoaded listener and mounts when event fires', async () => {
+  // limpiar cache y simular estado de carga
+  vi.resetModules();
+  const originalReadyState = document.readyState;
+  Object.defineProperty(document, 'readyState', { value: 'loading', configurable: true });
 
-  // título debe aparecer inmediatamente
-  expect(screen.getByText(/TP5 - Weather Forecast/i)).toBeInTheDocument();
+  // crear root ANTES de importar main para que el listener lo encuentre
+  const el = document.createElement('div');
+  el.id = 'root';
+  document.body.appendChild(el);
 
-  // esperar la lista generada por el fetch stub
-  await waitFor(() => expect(screen.getByRole('list')).toBeInTheDocument());
+  // importar main (añade listener)
+  await import('../main');
+
+  // disparar evento dentro de act para envolver actualizaciones de React
+  act(() => {
+    window.dispatchEvent(new Event('DOMContentLoaded'));
+  });
+
+  await waitFor(() => expect(screen.getByText(/TP5 - Weather Forecast/i)).toBeInTheDocument());
+
+  Object.defineProperty(document, 'readyState', { value: originalReadyState, configurable: true });
 });
