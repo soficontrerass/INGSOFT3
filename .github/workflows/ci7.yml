@@ -69,13 +69,13 @@ jobs:
             echo "Client LCOV head:"
             head -n 20 TP7/client/coverage/lcov.info || true
           fi
-          if [ -f TP7/server/coverage/lcov.info ]; then
-            sed -i 's#\\#/#g' TP7/server/coverage/lcov.info || true
-            sed -i -E 's#^SF:(\./)?src/#SF:server/src/#' TP7/server/coverage/lcov.info || true
-            sed -i -E 's#^SF:.*server/src/#SF:server/src/#' TP7/server/coverage/lcov.info || true
-            echo "Server LCOV head:"
-            head -n 20 TP7/server/coverage/lcov.info || true
+          if [ -f server/coverage/lcov.info ]; then
+            sed -i 's/\\/\//g' server/coverage/lcov.info
+            echo "Normalized coverage/lcov.info"
+          else
+            echo "coverage/lcov.info not found"
           fi
+
 
       - name: Check coverage thresholds (server & client)
         run: node TP7/tools/check-coverage.js
@@ -85,8 +85,12 @@ jobs:
         with:
           projectBaseDir: TP7
           args: >-
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-            -Dsonar.javascript.lcov.reportPaths=server/coverage/lcov.info,client/coverage/lcov.info
+            -Dsonar.branch.name=${{ github.ref_name }}
+            -Dsonar.javascript.lcov.reportPaths=server/coverage/lcov.info
             -X
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
