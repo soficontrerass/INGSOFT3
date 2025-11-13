@@ -66,11 +66,17 @@ jobs:
           if [ -f TP7/client/coverage/lcov.info ]; then
             # convertir backslashes a slashes
             sed -i 's#\\#/#g' TP7/client/coverage/lcov.info || true
-            # asegurar prefijo client/
-            sed -i -E 's#^SF:(\./)?src/#SF:client/src/#' TP7/client/coverage/lcov.info || true
-            sed -i -E 's#^SF:(\./)?([^/].*)#SF:client/\2#' TP7/client/coverage/lcov.info || true
-            echo "Client LCOV head (first 40 lines):"
-            head -n 40 TP7/client/coverage/lcov.info || true
+
+            # prefijar solo si no empieza ya con client/
+            awk 'BEGIN{FS=OFS=""} /^SF:/ {
+                if ($0 !~ /^SF:client\//) {
+                  sub(/^SF:(\.\/*)?/, "SF:client/");
+                }
+            }
+            {print}' TP7/client/coverage/lcov.info > /tmp/client_lcov.tmp && mv /tmp/client_lcov.tmp TP7/client/coverage/lcov.info || true
+
+            echo "Client LCOV head (first 80 lines):"
+            head -n 80 TP7/client/coverage/lcov.info || true
             echo "Client SF count:"
             grep -c '^SF:' TP7/client/coverage/lcov.info || true
             echo "Client total DA lines (covered entries):"
@@ -82,10 +88,16 @@ jobs:
           echo "=== Normalize server LCOV ==="
           if [ -f TP7/server/coverage/lcov.info ]; then
             sed -i 's#\\#/#g' TP7/server/coverage/lcov.info || true
-            sed -i -E 's#^SF:(\./)?src/#SF:server/src/#' TP7/server/coverage/lcov.info || true
-            sed -i -E 's#^SF:(\./)?([^/].*)#SF:server/\2#' TP7/server/coverage/lcov.info || true
-            echo "Server LCOV head (first 40 lines):"
-            head -n 40 TP7/server/coverage/lcov.info || true
+
+            awk 'BEGIN{FS=OFS=""} /^SF:/ {
+                if ($0 !~ /^SF:server\//) {
+                  sub(/^SF:(\.\/*)?/, "SF:server/");
+                }
+            }
+            {print}' TP7/server/coverage/lcov.info > /tmp/server_lcov.tmp && mv /tmp/server_lcov.tmp TP7/server/coverage/lcov.info || true
+
+            echo "Server LCOV head (first 80 lines):"
+            head -n 80 TP7/server/coverage/lcov.info || true
             echo "Server SF count:"
             grep -c '^SF:' TP7/server/coverage/lcov.info || true
             echo "Server total DA lines (covered entries):"
