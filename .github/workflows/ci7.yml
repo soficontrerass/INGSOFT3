@@ -159,15 +159,23 @@ jobs:
 
       - name: Install client deps & build
         run: |
-          npm --prefix client ci
-          npm --prefix client run build
+          CLIENT_DIR="client"
+          [ -d "TP7/client" ] && CLIENT_DIR="TP7/client"
+          if [ -f "${CLIENT_DIR}/package-lock.json" ]; then
+            npm --prefix "${CLIENT_DIR}" ci
+          else
+            npm --prefix "${CLIENT_DIR}" install
+          fi
+          npm --prefix "${CLIENT_DIR}" run build
 
       - name: Serve client dist on :8080 (background)
         run: |
-          npm --prefix client i -g http-server || true
-          npx http-server client/dist -p 8080 &
+          CLIENT_DIR="client"
+          [ -d "TP7/client" ] && CLIENT_DIR="TP7/client"
+          npm --prefix "${CLIENT_DIR}" i -g http-server || true
+          npx http-server "${CLIENT_DIR}/dist" -p 8080 & echo $! > "${CLIENT_DIR}/http-server.pid"
 
-      - name: Wait for app on :8080
+      - name: Wait for client on :8080
         run: npx wait-on http://localhost:8080
 
       - name: Run Cypress tests
