@@ -1,14 +1,12 @@
-// ...existing code...
 import React, { useEffect, useState } from 'react';
-import { getApiUrl } from './utils/getApiUrl';
-
-const API = getApiUrl();
 
 type Forecast = {
   date: string;
   temperatureC: number;
   summary: string;
 };
+
+const API = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8080';
 
 export default function App() {
   const [items, setItems] = useState<Forecast[] | null>(null);
@@ -32,8 +30,8 @@ export default function App() {
       {!items && !error && <div>Cargando...</div>}
       {items && (
         <ul>
-          {items.map((f) => (
-            <li key={f.date}>
+          {items.map((f, i) => (
+            <li key={i}>
               <strong>{new Date(f.date).toLocaleDateString()}</strong> — {f.temperatureC}°C — {f.summary}
             </li>
           ))}
@@ -42,4 +40,3 @@ export default function App() {
     </div>
   );
 }
-// ...existing code...
