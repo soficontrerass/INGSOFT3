@@ -1,29 +1,16 @@
 // ...existing code...
 import app from './app';
 
-/**
- * Export a const wrapper object so the exported binding is a const (Sonar)
- * while tests can still call .close(...) / .address().
- */
-export const serverInstance: any = {}; // properties will be attached when server starts
+const CLIENT_URL = process.env.CLIENT_URL || 'https://tp6-client-PLACEHOLDER.a.run.app';
 
-export function startServer() {
-  const port = process.env.PORT ? Number(process.env.PORT) : 8080;
-  const server = app.listen(port, () => {
-    console.log(`Server listening on port ${port} (FORECAST_COUNT=${process.env.FORECAST_COUNT || '5'})`);
-  });
-
-  // Cambiado a optional chaining para satisfacer la regla de Sonar
-  serverInstance.close = server.close?.bind(server);
-  serverInstance.address = server.address?.bind(server);
-  // keep a reference to the real server if needed
-  serverInstance.__server = server;
-
-  return server;
+// Redirect root to the deployed client only in production
+if (process.env.NODE_ENV === 'production') {
+  app.get('/', (_req, res) => res.redirect(CLIENT_URL));
+} else {
+  app.get('/', (_req, res) => res.send('Server running. Use the client UI to interact.'));
 }
 
-// start only when run directly or when tests explicitly request it
-if (require.main === module || process.env.RUN_SERVER === 'true') {
-  startServer();
-}
-// ...existing code...
+const port = process.env.PORT ? Number(process.env.PORT) : 8080;
+app.listen(port, () => {
+  console.log(`Server listening on port ${port} (FORECAST_COUNT=${process.env.FORECAST_COUNT || '5'})`);
+});
