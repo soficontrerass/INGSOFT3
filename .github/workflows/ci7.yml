@@ -178,8 +178,8 @@ jobs:
       - name: Wait for client on :8080
         run: npx wait-on http://localhost:8080
 
-      - name: Run Cypress tests
-        uses: cypress-io/github-action@v6
+      - name: Run Cypress tests (run from client folder)
+        run: npx cypress run --config baseUrl=http://localhost:8080 --spec "cypress/e2e/*.cy.js"
         working-directory: TP7/client
         with:
           start: false
