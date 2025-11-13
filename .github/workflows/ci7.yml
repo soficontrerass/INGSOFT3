@@ -58,25 +58,38 @@ jobs:
           name: client-coverage
           path: TP7/client/coverage
 
-      - name: Normalize LCOV paths for Sonar (fix backslashes and add project prefixes)
+
+      - name: Normalize & Debug LCOV for Sonar (client + server)
         run: |
           set -e
-          # normaliza slashes y asegura SF:client/src/ y SF:server/src/ para que Sonar mapee correctamente
+          echo "=== Normalize client LCOV ==="
           if [ -f TP7/client/coverage/lcov.info ]; then
+            # convertir backslashes a slashes
             sed -i 's#\\#/#g' TP7/client/coverage/lcov.info || true
+            # asegurar prefijo client/
             sed -i -E 's#^SF:(\./)?src/#SF:client/src/#' TP7/client/coverage/lcov.info || true
-            sed -i -E 's#^SF:.*client/src/#SF:client/src/#' TP7/client/coverage/lcov.info || true
-            echo "Client LCOV head:"
-            head -n 20 TP7/client/coverage/lcov.info || true
+            sed -i -E 's#^SF:(\./)?([^/].*)#SF:client/\2#' TP7/client/coverage/lcov.info || true
+            echo "Client LCOV head (first 40 lines):"
+            head -n 40 TP7/client/coverage/lcov.info || true
+            echo "Client SF count:"
+            grep -c '^SF:' TP7/client/coverage/lcov.info || true
+            echo "Client total DA lines (covered entries):"
+            grep '^DA:' TP7/client/coverage/lcov.info | wc -l || true
           else
             echo "TP7/client/coverage/lcov.info not found"
           fi
 
+          echo "=== Normalize server LCOV ==="
           if [ -f TP7/server/coverage/lcov.info ]; then
             sed -i 's#\\#/#g' TP7/server/coverage/lcov.info || true
             sed -i -E 's#^SF:(\./)?src/#SF:server/src/#' TP7/server/coverage/lcov.info || true
-            echo "Server LCOV head:"
-            head -n 20 TP7/server/coverage/lcov.info || true
+            sed -i -E 's#^SF:(\./)?([^/].*)#SF:server/\2#' TP7/server/coverage/lcov.info || true
+            echo "Server LCOV head (first 40 lines):"
+            head -n 40 TP7/server/coverage/lcov.info || true
+            echo "Server SF count:"
+            grep -c '^SF:' TP7/server/coverage/lcov.info || true
+            echo "Server total DA lines (covered entries):"
+            grep '^DA:' TP7/server/coverage/lcov.info | wc -l || true
           else
             echo "TP7/server/coverage/lcov.info not found"
           fi
