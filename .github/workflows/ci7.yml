@@ -157,6 +157,25 @@ jobs:
             exit 1
           fi
 
+      - name: Install client deps & build
+        run: |
+          npm --prefix client ci
+          npm --prefix client run build
+
+      - name: Serve client dist on :8080 (background)
+        run: |
+          npm --prefix client i -g http-server || true
+          npx http-server client/dist -p 8080 &
+
+      - name: Wait for app on :8080
+        run: npx wait-on http://localhost:8080
+
+      - name: Run Cypress tests
+        uses: cypress-io/github-action@v6
+        with:
+          start: false
+          wait-on: http://localhost:8080
+
       - name: Start backend for E2E
         run: |
           cd TP7/server
