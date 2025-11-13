@@ -181,9 +181,6 @@ jobs:
       - name: Run Cypress tests (run from client folder)
         run: npx cypress run --config baseUrl=http://localhost:8080 --spec "cypress/e2e/*.cy.js"
         working-directory: TP7/client
-        with:
-          start: false
-          wait-on: http://localhost:8080
 
       - name: Start backend for E2E
         run: |
