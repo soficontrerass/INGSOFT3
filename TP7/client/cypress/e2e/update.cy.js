@@ -1,26 +1,21 @@
 describe('E2E - Simulated update via intercept', () => {
   it('shows updated data when backend returns changed list', () => {
-    // primer stub: lista original con un item específico
+    // respuesta inicial
     cy.intercept('GET', '**/weatherforecast', {
       statusCode: 200,
-      body: [
-        { date: new Date().toISOString(), temperatureC: 10, summary: 'Init' }
-      ]
+      body: [{ date: new Date().toISOString(), temperatureC: 10, summary: 'Init' }]
     }).as('getInit');
 
-    cy.visit('/');
+    cy.visit('/', { timeout: 10000 });
     cy.wait('@getInit');
     cy.contains('Init').should('exist');
 
-    // ahora simulamos que backend cambió (update)
+    // ahora simulamos que backend devuelve datos nuevos
     cy.intercept('GET', '**/weatherforecast', {
       statusCode: 200,
-      body: [
-        { date: new Date().toISOString(), temperatureC: 99, summary: 'Updated' }
-      ]
+      body: [{ date: new Date().toISOString(), temperatureC: 99, summary: 'Updated' }]
     }).as('getUpdated');
 
-    // recargar la página para forzar nuevo fetch
     cy.reload();
     cy.wait('@getUpdated');
     cy.contains('Updated').should('exist');
