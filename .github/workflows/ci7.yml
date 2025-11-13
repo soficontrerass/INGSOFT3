@@ -2,7 +2,7 @@ name: CI7 - tests, coverage, SonarCloud, Cypress
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, restore-c55075c2 ]
   pull_request:
 
 jobs:
@@ -47,23 +47,10 @@ jobs:
           cd TP7/client
           npm ci
 
-      - name: Run client tests (Vitest + coverage) - debug
+      - name: Run client tests (Vitest + coverage)
         run: |
-          echo "=== pwd ==="
-          pwd
-          echo "=== node / npm versions ==="
-          node -v
-          npm -v
-          echo "=== show client package.json ==="
-          sed -n '1,200p' TP7/client/package.json || true
-          echo "=== ls client dir ==="
-          ls -la TP7/client || true
-          echo "=== ensure deps installed (debug) ==="
           cd TP7/client
-          npm ci
-          echo "=== run tests verbose ==="
-          # run tests with verbose output and print logs on failure
-          npm run test:ci -- --runInBand --reporter verbose || (echo "Tests failed, printing npm debug log if exists" && ls -la ./npm-debug.log || true && exit 1)
+          npm run test:ci
 
       - name: Upload client coverage artifact
         uses: actions/upload-artifact@v4
@@ -71,42 +58,40 @@ jobs:
           name: client-coverage
           path: TP7/client/coverage
 
+      - name: Normalize LCOV paths for Sonar (fix backslashes and add project prefixes)
+        run: |
+          # normalize slashes and ensure SF:client/src/ and SF:server/src/ prefixes so Sonar maps files correctly
+          set -e
+          if [ -f TP7/client/coverage/lcov.info ]; then
+            sed -i 's#\\#/#g' TP7/client/coverage/lcov.info || true
+            sed -i -E 's#^SF:(\./)?src/#SF:client/src/#' TP7/client/coverage/lcov.info || true
+            sed -i -E 's#^SF:.*client/src/#SF:client/src/#' TP7/client/coverage/lcov.info || true
+            echo "Client LCOV head:"
+            head -n 20 TP7/client/coverage/lcov.info || true
+          fi
+          if [ -f server/coverage/lcov.info ]; then
+            sed -i 's/\\/\//g' server/coverage/lcov.info
+            echo "Normalized coverage/lcov.info"
+          else
+            echo "coverage/lcov.info not found"
+          fi
+
+
       - name: Check coverage thresholds (server & client)
         run: node TP7/tools/check-coverage.js
-
-      - name: Normalize LCOV paths for Sonar (replace backslashes -> forward slashes)
-        run: |
-          cd TP7
-
-          # server lcov: backslashes -> forward slashes
-          if [ -f server/coverage/lcov.info ]; then
-            sed -i 's#\\\\#/#g' server/coverage/lcov.info || true
-            # prefix SF:src/... -> SF:server/src/...
-            sed -i -E 's#^SF:src/#SF:server/src/#' server/coverage/lcov.info || true
-          fi
-
-          # client lcov: backslashes -> forward slashes
-          if [ -f client/coverage/lcov.info ]; then
-            sed -i 's#\\\\#/#g' client/coverage/lcov.info || true
-            # prefix SF:src/... -> SF:client/src/...
-            sed -i -E 's#^SF:src/#SF:client/src/#' client/coverage/lcov.info || true
-          fi
-          
-      - name: Debug:show server coverage file
-        run: |
-          echo "PWD: $(pwd)"
-          ls -la TP7/server/coverage || true
-          echo "---- head of lcov ----"
-          if [ -f TP7/server/coverage/lcov.info ]; then head -n 40 TP7/server/coverage/lcov.info; else echo "no lcov for server"; fi
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
         with:
           projectBaseDir: TP7
           args: >-
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-            -Dsonar.sources=server/src,client/src
-            -Dsonar.javascript.lcov.reportPaths=server/coverage/lcov.info,client/coverage/lcov.info
+            -Dsonar.branch.name=${{ github.ref_name }}
+            -Dsonar.javascript.lcov.reportPaths=server/coverage/lcov.info
+            -X
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
@@ -114,9 +99,9 @@ jobs:
         if: always()
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
         run: |
-          # reemplazar por tu sonar.projectKey si es distinto
-          SONAR_PROJECT_KEY="soficontrerass"
+          set -e
           echo "Checking SonarCloud Quality Gate for $SONAR_PROJECT_KEY"
           sudo apt-get update -y
           sudo apt-get install -y jq curl
@@ -129,6 +114,7 @@ jobs:
             attempt=$((attempt+1))
             echo "Attempt $attempt/$MAX_ATTEMPTS..."
             resp=$(curl -s -u "$SONAR_TOKEN:" "https://sonarcloud.io/api/qualitygates/project_status?projectKey=${SONAR_PROJECT_KEY}")
+            echo "raw response: $resp"
             status=$(echo "$resp" | jq -r '.projectStatus.status' 2>/dev/null || echo "")
             if [ "$status" = "OK" ] || [ "$status" = "ERROR" ]; then
               break
