@@ -84,7 +84,10 @@ jobs:
         uses: sonarsource/sonarcloud-github-action@v2
         with:
           projectBaseDir: TP7
-          args: -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+          args: >-
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+            -Dsonar.javascript.lcov.reportPaths=server/coverage/lcov.info,client/coverage/lcov.info
+            -X
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
