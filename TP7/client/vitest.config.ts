@@ -1,15 +1,28 @@
+// ...existing code...
 import { defineConfig } from 'vitest/config';
+
+const coverageOptions: any = {
+  provider: 'v8',
+  reporter: ['text', 'lcov', 'json-summary'],
+  reportsDirectory: 'coverage',
+  all: true,
+  include: ['src/**/*.{ts,tsx,js,jsx}'],
+  exclude: [
+    '**/*.test.*',
+    '**/*.spec.*',
+    'node_modules/**',
+    'src/vite-env.d.ts'
+    // NO excluir src/setupTests.ts si querés que aparezca en coverage
+  ],
+};
 
 export default defineConfig({
   test: {
-    // usar happy-dom para evitar problemas con parse5/jsdom ESM
     environment: 'happy-dom',
     globals: true,
-    setupFiles: './src/tests/setupTests.ts',
+    setupFiles: './src/setupTests.ts', // <--- asegurarse que apunta al setup elegido
     testTimeout: 20000,
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'lcov', 'json-summary'],
-    },
+    coverage: coverageOptions,
   },
 });
+// ...existing code...
