@@ -3,98 +3,76 @@ export {};
 beforeEach(() => {
   jest.resetModules();
   jest.clearAllMocks();
+  // limpiar env
   delete process.env.DATABASE_URL;
-  delete process.env.DB_HOST;
   delete process.env.DB_NAME;
+  delete process.env.DB_HOST;
   delete process.env.DB_USER;
   delete process.env.DB_PASS;
   delete process.env.DB_PORT;
 });
 
-test('uses DATABASE_URL when provided', async () => {
+test('uses DATABASE_URL -> Pool constructed with connectionString and query/close work', async () => {
   await jest.isolateModulesAsync(async () => {
-    process.env.DATABASE_URL = 'postgres://u:p@localhost:5432/db';
-    const end = jest.fn().mockResolvedValue(undefined);
-    const query = jest.fn().mockResolvedValue({ rows: [] });
+    const poolQuery = jest.fn().mockResolvedValue({ rows: [] });
+    const poolEnd = jest.fn().mockResolvedValue(undefined);
     const Pool = jest.fn().mockImplementation((opts: any) => {
-      expect(opts).toHaveProperty('connectionString', process.env.DATABASE_URL);
-      return { query, end };
+      return { query: poolQuery, end: poolEnd };
     });
 
-    jest.doMock('pg', () => ({ Pool }));
+    process.env.DATABASE_URL = 'postgres://user:pass@localhost:5432/db';
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    jest.doMock('pg', () => ({ Pool }));
     const db = require('../db');
 
-    await db.query('SELECT 1');
-    expect(Pool).toHaveBeenCalled();
-    await db.close();
-    expect(end).toHaveBeenCalled();
+    await expect(db.query('SELECT 1')).resolves.toEqual({ rows: [] });
+    expect(Pool).toHaveBeenCalledWith({ connectionString: process.env.DATABASE_URL });
+    expect(poolQuery).toHaveBeenCalledWith('SELECT 1', undefined);
 
-    delete process.env.DATABASE_URL;
+    await db.close();
+    expect(poolEnd).toHaveBeenCalled();
   });
 });
 
-test('uses DB_* env vars and parses DB_PORT as number', async () => {
+test('uses DB_NAME/DB_HOST envs -> Pool constructed with host/user/pass/port and close works', async () => {
   await jest.isolateModulesAsync(async () => {
-    process.env.DB_HOST = 'dbhost';
-    process.env.DB_NAME = 'dbname';
-    process.env.DB_USER = 'userx';
-    process.env.DB_PASS = 'passx';
+    const poolQuery = jest.fn().mockResolvedValue({ rows: [] });
+    const poolEnd = jest.fn().mockResolvedValue(undefined);
+    const Pool = jest.fn().mockImplementation((opts: any) => {
+      return { query: poolQuery, end: poolEnd };
+    });
+
+    process.env.DB_NAME = 'mydb';
+    process.env.DB_HOST = 'db.example';
+    process.env.DB_USER = 'u';
+    process.env.DB_PASS = 'p';
     process.env.DB_PORT = '5433';
 
-    const end = jest.fn().mockResolvedValue(undefined);
-    const query = jest.fn().mockResolvedValue({ rows: [] });
-    const Pool = jest.fn().mockImplementation((opts: any) => {
-      expect(opts).toMatchObject({
-        user: 'userx',
-        password: 'passx',
-        database: 'dbname',
-        host: 'dbhost',
-      });
-      // port must be a number (cover parseInt branch)
-      expect(typeof opts.port).toBe('number');
-      expect(opts.port).toBe(5433);
-      return { query, end };
-    });
-
     jest.doMock('pg', () => ({ Pool }));
-
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const db = require('../db');
 
-    await db.query('SELECT 1');
-    expect(Pool).toHaveBeenCalled();
+    await expect(db.query('SELECT 2')).resolves.toEqual({ rows: [] });
+    expect(Pool).toHaveBeenCalledWith({
+      user: 'u',
+      password: 'p',
+      database: 'mydb',
+      host: 'db.example',
+      port: 5433,
+    });
+    expect(poolQuery).toHaveBeenCalledWith('SELECT 2', undefined);
 
     await db.close();
-    expect(end).toHaveBeenCalled();
-
-    delete process.env.DB_HOST;
-    delete process.env.DB_NAME;
-    delete process.env.DB_USER;
-    delete process.env.DB_PASS;
-    delete process.env.DB_PORT;
+    expect(poolEnd).toHaveBeenCalled();
   });
 });
 
-test('throws when no DB configuration present', async () => {
+test('no envs -> getPool throws and query rejects with error', async () => {
   await jest.isolateModulesAsync(async () => {
-    // ensure no env vars
-    delete process.env.DATABASE_URL;
-    delete process.env.DB_HOST;
-    delete process.env.DB_NAME;
-    delete process.env.DB_USER;
-    delete process.env.DB_PASS;
-    delete process.env.DB_PORT;
-
-    // mock pg to avoid real import side-effects
     jest.doMock('pg', () => ({ Pool: jest.fn() }));
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const db = require('../db');
 
-    await expect(db.query('SELECT 1')).rejects.toThrow(
-      /No database configuration found/i
-    );
+    await expect(db.query('SELECT 3')).rejects.toThrow(/No database configuration found/);
+    await expect(db.close()).resolves.toBeUndefined();
   });
 });
