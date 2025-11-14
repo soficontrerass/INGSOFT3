@@ -42,32 +42,34 @@ jobs:
           KEY: ${{ secrets.GCP_SA_KEY_QA8 }}
         run: echo "$KEY" > /tmp/gcp-key.json
 
-      - name: Setup gcloud
+      - name: Setup gcloud (QA)
         uses: google-github-actions/setup-gcloud@v1
         with:
           service_account_key: /tmp/gcp-key.json
           project_id: ${{ secrets.GCP_PROJECT8_ID }}
           export_default_credentials: true
 
-      - name: Configure docker for Artifact Registry
-        run: gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+      - name: Activate SA & configure Docker
+        run: |
+          gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
+          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
 
       - name: Build and push image
         run: |
-          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT8_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker build -t $IMAGE ./TP8/server
           docker push $IMAGE
 
       - name: Deploy to Cloud Run (QA)
         run: |
-          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT8_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           gcloud run deploy tp8-qa \
             --image $IMAGE \
             --region ${{ env.REGION }} \
             --platform managed \
             --allow-unauthenticated \
             --set-env-vars NODE_ENV=qa,DATABASE_URL="${{ secrets.DB_URL_QA }}" \
-            --service-account ci-deployer@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+            --service-account ci-deployer@${{ secrets.GCP_PROJECT8_ID }}.iam.gserviceaccount.com
 
   deploy-prod:
     needs: publish-and-deploy-qa
@@ -86,12 +88,12 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
         with:
           service_account_key: /tmp/gcp-key.json
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          project_id: ${{ secrets.GCP_PROJECT8_ID }}
           export_default_credentials: true
 
       - name: Deploy to Cloud Run (PROD)
         run: |
-          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT8_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           gcloud run deploy tp8-prod \
             --image $IMAGE \
             --region ${{ env.REGION }} \
@@ -99,4 +101,4 @@ jobs:
             --allow-unauthenticated \
             --set-env-vars NODE_ENV=prod,DATABASE_URL="${{ secrets.DB_URL_PROD }}" \
             --memory 1Gi --min-instances=1 --max-instances=5 \
-            --service-account ci-deployer@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+            --service-account ci-deployer@${{ secrets.GCP_PROJECT8_ID }}.iam.gserviceaccount.com
