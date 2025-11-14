@@ -77,11 +77,20 @@ jobs:
           echo "=== docker info (partial) ==="
           docker info | sed -n '1,20p'
 
+      - name: Inspect repo (diagnóstico)
+        run: |
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          ls -la "$GITHUB_WORKSPACE"
+          ls -la "$GITHUB_WORKSPACE/TP8" || true
+          ls -la "$GITHUB_WORKSPACE/TP8/server" || true
+
       - name: Build and push image
         run: |
           IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT8_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker build -t $IMAGE ./TP8/server
-          docker push $IMAGE
+          echo "Building image: $IMAGE"
+          # usar ruta absoluta al contexto para evitar problemas de cwd
+          docker build -t "$IMAGE" "$GITHUB_WORKSPACE/TP8/server"
+          docker push "$IMAGE"
 
       - name: Deploy to Cloud Run (QA)
         run: |
