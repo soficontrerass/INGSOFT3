@@ -1,4 +1,4 @@
-name: TP5 CI
+name: CI5
 
 on:
   push:

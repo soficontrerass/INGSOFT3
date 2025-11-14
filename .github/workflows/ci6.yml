@@ -2,30 +2,39 @@ name: CI6 - Tests
 
 on:
   push:
+    # ramas y rutas a monitorear para ejecutar CI
     branches: [ main, 'feature/*' ]
     paths:
       - 'TP6/**'
   pull_request:
+    # ejecutar en PRs hacia main cuando cambian archivos en TP6
     branches: [ main ]
     paths:
       - 'TP6/**'
+  # permitir ejecución manual desde la UI
   workflow_dispatch: {}
 
 jobs:
   tests:
     runs-on: ubuntu-latest
+
+    # Matriz de versiones de Node.js (aquí solo 20)
     strategy:
       matrix:
         node-version: [20]
+
     steps:
+      # Clona el repositorio para disponer del código en el runner
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Prepara Node.js en la versión definida en la matriz
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 
+      # Cache de node_modules del backend para acelerar futuras ejecuciones
       - name: Cache backend node_modules
         uses: actions/cache@v4
         with:
@@ -34,14 +43,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-${{ matrix.node-version }}-server-
 
+      # Instala dependencias y ejecuta los tests del backend
       - name: Install & Test backend
         working-directory: ./TP6/server
         run: |
           npm ci
+          # intenta ejecutar la suite en modo CI; si falla, ejecuta test normal
           npm run test:ci || npm run test
         env:
           CI: true
 
+      # Sube el reporte/coverage del backend como artifact aunque fallen los tests
       - name: Upload backend coverage
         if: always()
         uses: actions/upload-artifact@v4
@@ -49,6 +61,7 @@ jobs:
           name: backend-coverage
           path: TP6/server/coverage
 
+      # Cache de node_modules del frontend para acelerar el job
       - name: Cache frontend node_modules
         uses: actions/cache@v4
         with:
@@ -57,14 +70,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-${{ matrix.node-version }}-client-
 
+      # Instala dependencias y ejecuta los tests del frontend
       - name: Install & Test frontend
         working-directory: ./TP6/client
         run: |
           npm ci
+          # ejecutar tests en modo CI si existe el script, si no usar test normal
           npm run test:ci || npm run test
         env:
           CI: true
 
+      # Sube el reporte/coverage del frontend como artifact aunque fallen los tests
       - name: Upload frontend coverage
         if: always()
         uses: actions/upload-artifact@v4

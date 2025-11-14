@@ -15,58 +15,71 @@ on:
 
 jobs:
   ci:
+    # Ejecutar en un runner Ubuntu
     runs-on: ubuntu-latest
+
+    # Variables de entorno del job (versión Node y umbral de coverage)
     env:
       NODE_VERSION: '20'
       COVERAGE_THRESHOLD: 70
+
     steps:
+      # Clonar el repositorio para disponer del código en el runner
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Instalar Node.js en la versión indicada
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      # Mostrar versiones de node/npm (útil para debug en logs)
       - name: Show node & npm versions (debug)
         run: |
           node -v
           npm -v
           pnpm -v || true
 
+      # Instalar dependencias del servidor (backend)
       - name: Install server dependencies
         run: |
           cd TP7/server
           npm ci
 
+      # Ejecutar tests unitarios del servidor y generar cobertura
       - name: Run server tests (Jest + coverage)
         run: |
           cd TP7/server
           npm run test:ci
 
+      # Subir el reporte de coverage del servidor como artifact
       - name: Upload server coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: server-coverage
           path: TP7/server/coverage
 
+      # Instalar dependencias del cliente (frontend)
       - name: Install client dependencies
         run: |
           cd TP7/client
           npm ci
 
+      # Ejecutar tests del cliente (Vitest u otra herramienta) y generar coverage
       - name: Run client tests (Vitest + coverage)
         run: |
           cd TP7/client
           npm run test:ci
 
+      # Subir el reporte de coverage del cliente como artifact
       - name: Upload client coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: client-coverage
           path: TP7/client/coverage
 
-
+      # Normalizar rutas en archivos lcov para SonarCloud (reemplaza backslashes y prefija paths)
       - name: Normalize & Debug LCOV for Sonar (client + server)
         run: |
           set -e
@@ -114,9 +127,11 @@ jobs:
             echo "TP7/server/coverage/lcov.info not found"
           fi
 
+      # Comprobar umbrales de coverage definidos en la herramienta local (script JS)
       - name: Check coverage thresholds (server & client)
         run: node TP7/tools/check-coverage.js
 
+      # Ejecutar SonarCloud scan (envía fuentes y paths de lcov)
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
         with:
@@ -132,6 +147,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+      # Consultar el Quality Gate de SonarCloud y fallar si no es OK
       - name: Check SonarCloud Quality Gate
         if: always()
         env:
@@ -165,6 +181,7 @@ jobs:
             exit 1
           fi
 
+      # Compilar el cliente para pruebas E2E (genera dist)
       - name: Install client deps & build
         run: |
           CLIENT_DIR="client"
@@ -176,6 +193,7 @@ jobs:
           fi
           npm --prefix "${CLIENT_DIR}" run build
 
+      # Servir el build del cliente en el runner en el puerto 8080 (para Cypress)
       - name: Serve client dist on :8080 (background)
         run: |
           CLIENT_DIR="client"
@@ -183,22 +201,27 @@ jobs:
           npm --prefix "${CLIENT_DIR}" i -g http-server || true
           npx http-server "${CLIENT_DIR}/dist" -p 8080 & echo $! > "${CLIENT_DIR}/http-server.pid"
 
+      # Esperar a que el servidor http del cliente esté listo
       - name: Wait for client on :8080
         run: npx wait-on http://localhost:8080
 
+      # Ejecutar tests E2E de Cypress contra el cliente servido localmente
       - name: Run Cypress tests (run from client folder)
         run: npx cypress run --config baseUrl=http://localhost:8080 --spec "cypress/e2e/*.cy.js"
         working-directory: TP7/client
 
+      # Iniciar backend en background para las pruebas E2E (si es necesario)
       - name: Start backend for E2E
         run: |
           cd TP7/server
           npm run start &>/dev/null & echo $! > server.pid
         continue-on-error: false
 
+      # Instalar dependencias del cliente específicamente para Cypress
       - name: Install client dependencies for Cypress
         run: npm ci --prefix TP7/client
 
+      # Ejecutar Cypress E2E usando la acción oficial (usa el cliente servido en localhost)
       - name: Run Cypress E2E tests
         uses: cypress-io/github-action@v6
         with:
@@ -208,11 +231,13 @@ jobs:
           browser: chrome
           record: false
 
+      # Parar el backend iniciado para E2E (si existe), paso ejecutado siempre
       - name: Stop backend
         if: always()
         run: |
           if [ -f TP7/server/server.pid ]; then kill $(cat TP7/server/server.pid) || true; rm -f TP7/server/server.pid; fi
 
+      # Subir resultados de Cypress (screenshots, videos, reports) como artifacts
       - name: Upload Cypress results
         if: always()
         uses: actions/upload-artifact@v4
@@ -223,5 +248,6 @@ jobs:
             TP7/client/cypress/videos
             TP7/client/cypress/screenshots
 
+      # Mensaje final de estado del pipeline
       - name: Final status
         run: echo "CI7 pipeline completed"

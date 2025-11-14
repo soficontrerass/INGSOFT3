@@ -1,4 +1,4 @@
-name: CI / CD → GCP Cloud Run
+name: CI8 - GCP Cloud Run
 
 on:
   push:
@@ -34,6 +34,7 @@ jobs:
           npm ci
           npm run test:ci
 
+# Job: construir la imagen Docker, subirla al Artifact Registry y desplegar en QA
   publish-and-deploy-qa:
     needs: build-and-test
     runs-on: ubuntu-latest
@@ -41,6 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Escribir la clave de servicio GCP (QA) en un archivo local con manejo de nuevos saltos de línea
       - name: Write GCP key (QA) (robust)
         env:
           KEY: ${{ secrets.GCP_SA_KEY_QA8 }}
@@ -60,6 +62,7 @@ jobs:
           fi
           echo "wrote /tmp/gcp-key.json bytes:" $(wc -c < /tmp/gcp-key.json)
 
+      # Configurar gcloud usando la clave escrita (QA)
       - name: Setup gcloud (QA)
         uses: google-github-actions/setup-gcloud@v1
         with:
@@ -67,6 +70,7 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT8_ID }}
           export_default_credentials: true
 
+      # Activar la cuenta de servicio y configurar docker para empujar a Artifact Registry
       - name: Activate SA & configure Docker (fallback)
         run: |
           set -euo pipefail
@@ -89,6 +93,7 @@ jobs:
           echo "=== docker info (partial) ==="
           docker info | sed -n '1,20p'
 
+       # Inspección rápida del workspace (diagnóstico)
       - name: Inspect repo (diagnóstico)
         run: |
           echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
@@ -96,6 +101,7 @@ jobs:
           ls -la "$GITHUB_WORKSPACE/TP8" || true
           ls -la "$GITHUB_WORKSPACE/TP8/server" || true
 
+      # Construir la imagen Docker del servidor y subirla al Artifact Registry
       - name: Build and push image
         run: |
           IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT8_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -104,6 +110,7 @@ jobs:
           docker build -t "$IMAGE" "$GITHUB_WORKSPACE/TP8/server"
           docker push "$IMAGE"
 
+      # Desplegar la imagen en Cloud Run en el entorno QA con variables de entorno necesarias
       - name: Deploy to Cloud Run (QA)
         run: |
           IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT8_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -123,6 +130,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Escribir la clave GCP de PROD en archivo local (manejo robusto de nueva línea)
       - name: Write GCP key (PROD) (robust)
         env:
           KEY: ${{ secrets.GCP_SA_KEY_PROD8 }}
@@ -134,6 +142,7 @@ jobs:
           fi
           echo "gcp key bytes:" $(wc -c < /tmp/gcp-key.json)
 
+      # Configurar gcloud para PROD usando la clave provisionada
       - name: Setup gcloud (PROD)
         uses: google-github-actions/setup-gcloud@v1
         with:
@@ -141,6 +150,7 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT8_ID }}
           export_default_credentials: true
 
+      # Activar la SA y asegurarse de que el proyecto está configurado (diagnóstico)
       - name: Activate SA & ensure project (diagnostics)
         run: |
           gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
@@ -149,6 +159,7 @@ jobs:
           gcloud auth list
           gcloud config get-value project
 
+      # Desplegar la imagen en Cloud Run en producción con ajustes de memoria y escalado
       - name: Deploy to Cloud Run (PROD)
         run: |
           IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT8_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
