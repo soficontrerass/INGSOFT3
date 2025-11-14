@@ -46,7 +46,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
         with:
           service_account_key: /tmp/gcp-key.json
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          project_id: ${{ secrets.GCP_PROJECT8_ID }}
           export_default_credentials: true
 
       - name: Configure docker for Artifact Registry
