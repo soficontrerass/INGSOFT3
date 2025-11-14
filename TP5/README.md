@@ -47,6 +47,3 @@ Migraciones y backups (qué se hizo)
 Evidencias que deben entregarse
 - Capturas: workflow run exitoso (QA y PROD), approval UI, backup GCS listado, export exitoso.
 - comandos/outputs: gcloud sql export, gcloud run describe, gsutil ls -L, logs de migración.
-
-Contacto y notas
-- Si necesitás, genero screenshots y un checklist final para la defensa oral.
