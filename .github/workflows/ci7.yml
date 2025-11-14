@@ -3,7 +3,15 @@ name: CI7 - tests, coverage, SonarCloud, Cypress
 on:
   push:
     branches: [ main, master, restore-c55075c2 ]
+    paths:
+      - 'TP7/**'
+      - '.github/workflows/ci7.yml'
   pull_request:
+    branches: [ main ]
+    paths:
+      - 'TP7/**'
+      - '.github/workflows/ci7.yml'
+  workflow_dispatch: {}
 
 jobs:
   ci:

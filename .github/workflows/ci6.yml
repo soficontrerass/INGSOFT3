@@ -3,7 +3,13 @@ name: CI6 - Tests
 on:
   push:
     branches: [ main, 'feature/*' ]
+    paths:
+      - 'TP6/**'
   pull_request:
+    branches: [ main ]
+    paths:
+      - 'TP6/**'
+  workflow_dispatch: {}
 
 jobs:
   tests:

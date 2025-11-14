@@ -3,9 +3,13 @@ name: CI / CD → GCP Cloud Run
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'TP8/**'
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
+    paths:
+      - 'TP8/**'
+  workflow_dispatch: {}
 
 env:
   REGION: us-central1
