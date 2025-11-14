@@ -5,7 +5,7 @@ Resumen
 - Documentación breve sobre decisiones, cobertura, pruebas de integración y pipeline.
 - Evidencias en ./evidencias (capturas de SonarCloud, cobertura y artifacts).
 
-## 1) Justificación tecnológica
+## 1) Justificación tecnológica -
 Stack elegido:
 - Node.js + TypeScript: ejecución rápida, tipado estático para reducir errores y buena integración con Jest/Sonar.
 - Express: micro-framework ligero para endpoints REST.
