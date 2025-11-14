@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import express from 'express';
 import app from './app';
+import { randomInt } from 'crypto';
 
 const CLIENT_DIST = path.resolve(__dirname, '../../client/dist');
 const CLIENT_URL = process.env.CLIENT_URL || 'https://tp6-client-PLACEHOLDER.a.run.app';
@@ -49,8 +50,9 @@ if (typeof (app as any).get === 'function') {
     const summaries = ['Freezing','Bracing','Chilly','Cool','Mild','Warm','Balmy','Hot','Sweltering','Scorching'];
     const data = Array.from({ length: count }).map((_, i) => ({
       date: new Date(Date.now() + i * 86400000).toISOString(),
-      temperatureC: Math.floor(Math.random() * 35) - 5,
-      summary: summaries[Math.floor(Math.random() * summaries.length)]
+      // reemplazo seguro:
+      temperatureC: randomInt(35) - 5, // 0..34 -> -5..29
+      summary: summaries[randomInt(summaries.length)]
     }));
     res.json(data);
   });
