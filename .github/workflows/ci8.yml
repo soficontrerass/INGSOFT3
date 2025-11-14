@@ -41,12 +41,20 @@ jobs:
         env:
           KEY: ${{ secrets.GCP_SA_KEY_QA8 }}
         run: |
+          # show length of the secret variable (no muestra su contenido)
+          echo -n "secret length (bytes): "
+          echo -n "${KEY}" | wc -c
+          if [ -z "${KEY}" ]; then
+            echo "ERROR: secret is empty or wrong name. Check repo/ environment secrets."
+            exit 1
+          fi
+          # write exactly and try to fix escaped newlines
           printf '%s' "$KEY" > /tmp/gcp-key.json
           if ! python3 -c "import json,sys; json.load(open('/tmp/gcp-key.json'))" 2>/dev/null; then
             sed 's/\\n/\n/g' /tmp/gcp-key.json > /tmp/gcp-key-fixed.json || true
             mv /tmp/gcp-key-fixed.json /tmp/gcp-key.json || true
           fi
-          echo "gcp key bytes:" $(wc -c < /tmp/gcp-key.json)
+          echo "wrote /tmp/gcp-key.json bytes:" $(wc -c < /tmp/gcp-key.json)
 
       - name: Setup gcloud (QA)
         uses: google-github-actions/setup-gcloud@v1
