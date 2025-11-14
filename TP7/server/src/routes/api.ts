@@ -6,10 +6,7 @@ const router = express.Router();
 
 router.get('/health', async (_req, res) => {
   try {
-    // check db connectivity if configured
-    if (process.env.DB_NAME || process.env.DATABASE_URL) {
-      await query('SELECT 1');
-    }
+    await query('SELECT 1'); // <- intentar siempre la consulta
     res.json({ status: 'ok' });
   } catch (err: any) {
     console.error('health check error', err);
