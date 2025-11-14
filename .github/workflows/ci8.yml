@@ -57,11 +57,24 @@ jobs:
 
       - name: Activate SA & configure Docker (fallback)
         run: |
+          set -euo pipefail
+          echo "Validando /tmp/gcp-key.json..."
+          ls -l /tmp/gcp-key.json || (echo "FILE MISSING" && exit 1)
+          head -c 200 /tmp/gcp-key.json | sed -n '1,5p'
+          # activar la cuenta de servicio
           gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
-          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet || true
+          echo "gcloud account:"
+          gcloud auth list
+          echo "gcloud project:"
+          gcloud config get-value project || true
+          # configurar helpers docker
+          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet || echo "configure-docker falló"
+          # fallback: login con token
           TOKEN=$(gcloud auth print-access-token)
-          echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin https://${{ env.REGION }}-docker.pkg.dev
-
+          echo "token length:" ${#TOKEN}
+          echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin https://${{ env.REGION }}-docker.pkg.dev || (docker logout https://${{ env.REGION }}-docker.pkg.dev && echo "docker login falló" && exit 1)
+          docker info | sed -n '1,20p'
+          
       - name: Build and push image
         run: |
           IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT8_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
