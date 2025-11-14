@@ -49,10 +49,14 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT8_ID }}
           export_default_credentials: true
 
-      - name: Activate SA & configure Docker
+      - name: Activate SA & configure Docker (and login fallback)
         run: |
           gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
-          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+          # primary: configure docker credential helpers
+          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet || true
+          # fallback: login using an access token (reliable when configure-docker doesn't take)
+          TOKEN=$(gcloud auth print-access-token)
+          echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin https://${{ env.REGION }}-docker.pkg.dev
 
       - name: Build and push image
         run: |
