@@ -25,7 +25,7 @@ jobs:
           node-version: '18'
 
       - name: Install & Test (server)
-        working-directory: ./server
+        working-directory: TP8/server
         run: |
           npm ci
           npm run test:ci
@@ -55,7 +55,7 @@ jobs:
       - name: Build and push image
         run: |
           IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker build -t $IMAGE ./server
+          docker build -t $IMAGE ./TP8/server
           docker push $IMAGE
 
       - name: Deploy to Cloud Run (QA)
