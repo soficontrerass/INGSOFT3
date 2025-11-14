@@ -14,14 +14,17 @@ env:
   SHA: ${{ github.sha }}
 
 jobs:
+  # Job: construye imágenes (server + client) y las sube al Artifact Registry / Container Registry
   build:
     name: Build & push images (QA credentials)
     runs-on: ubuntu-latest
     environment: qa
     steps:
+      # Clona repo
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Verifica que la secret de QA esté disponible en el runner
       - name: Debug - verify qa secret available
         env:
           GCP_SA_KEY_QA: ${{ secrets.GCP_SA_KEY_QA }}
@@ -32,33 +35,39 @@ jobs:
             echo "GCP_SA_KEY_QA is present (len=$(printf '%s' "$GCP_SA_KEY_QA" | wc -c))"
           fi
 
+      # Autentica el runner contra GCP usando la service account (QA)
       - name: Authenticate to GCP (build)
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY_QA }}
 
+      # Instala / configura gcloud CLI en el runner
       - name: Setup gcloud CLI
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           version: 'latest'
 
+      # Asegura que las APIs necesarias de GCP estén habilitadas
       - name: Ensure required GCP APIs enabled
         run: |
           gcloud services enable sql-component.googleapis.com sqladmin.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project="${{ secrets.GCP_PROJECT_ID }}" --quiet || true
           sleep 5
 
+      # Build y submit de la imagen del servidor usando Cloud Build
       - name: Build & push server image
         run: |
           SERVER_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
           echo "Building and pushing ${SERVER_IMAGE}"
           gcloud builds submit TP5/server --tag "${SERVER_IMAGE}" --project "$PROJECT" --region "$REGION"
 
+      # Guarda referencias de imágenes en archivos (para uso posterior en deploy)
       - name: Save image references
         run: |
           echo "${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}" > image-ref-server.txt
           echo "${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}" > image-ref-client.txt
 
+      # Sube los archivos con las referencias de imágenes como artifact
       - name: Upload image references artifact
         uses: actions/upload-artifact@v4
         with:
@@ -67,12 +76,14 @@ jobs:
             image-ref-server.txt
             image-ref-client.txt
 
+      # Intenta obtener la URL del servicio server (si ya existe) para inyectarla en el build del cliente
       - name: Get server URL (temporary, may be empty on first run)
         id: get-server
         run: |
           SERVER_URL=$(gcloud run services describe tp5-server-qa --region "$REGION" --project "$PROJECT" --format='value(status.url)' || echo "")
           echo "SERVER_URL=$SERVER_URL" >> $GITHUB_OUTPUT
 
+      # Build y push de la imagen del cliente; inyecta VITE_API_URL si SERVER_URL disponible
       - name: Build & push client image
         run: |
           CLIENT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
@@ -85,15 +96,18 @@ jobs:
         env:
           CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
 
+  # Job: despliega automáticamente a QA, corre migraciones y smoke tests; rollback en fallo
   deploy-qa:
     name: Deploy to QA (automatic)
     needs: build
     runs-on: ubuntu-latest
     environment: qa
     steps:
+      # Clona repo
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Verifica presencia de secret QA
       - name: Debug - verify qa secret available
         env:
           GCP_SA_KEY_QA: ${{ secrets.GCP_SA_KEY_QA }}
@@ -104,22 +118,26 @@ jobs:
             echo "GCP_SA_KEY_QA is present"
           fi
 
+      # Autenticación QA
       - name: Authenticate to GCP (QA)
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY_QA }}
 
+      # Instala gcloud
       - name: Setup gcloud CLI (QA)
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           version: 'latest'
 
+      # Asegura APIs
       - name: Ensure required GCP APIs enabled
         run: |
           gcloud services enable sql-component.googleapis.com sqladmin.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project="${{ secrets.GCP_PROJECT_ID }}" --quiet || true
           sleep 5
 
+      # Guarda la imagen previa del server para permitir rollback si falla el despliegue
       - name: Record previous server image (QA)
         id: prev_image
         run: |
@@ -127,6 +145,7 @@ jobs:
           echo "PREV_IMAGE=$PREV" >> $GITHUB_ENV
           echo "Prev image: $PREV"
 
+      # Despliega la imagen del server a Cloud Run conectada a Cloud SQL (QA)
       - name: Deploy server QA (with Cloud SQL)
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
@@ -142,6 +161,7 @@ jobs:
             --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="${DB_USER}",DB_PASS="${{ secrets.DB_PASS_QA }}",DB_NAME="${DB_NAME}" \
             --project "$PROJECT" --quiet
 
+      # Crea/ejecuta job de migraciones en Cloud Run (idempotente) y espera a que termine
       - name: Run DB migrations (QA) as Cloud Run Job
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
@@ -170,6 +190,7 @@ jobs:
         env:
           CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
 
+      # Re-despliega server QA (puede ajustar env vars)
       - name: Deploy server QA
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
@@ -181,6 +202,7 @@ jobs:
             --set-env-vars FORECAST_COUNT=5 \
             --project "$PROJECT"
 
+      # Despliega el cliente a Cloud Run (QA) y asegura que VITE_API_URL apunte al server QA
       - name: Deploy client QA (set VITE_API_URL to QA server URL)
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
@@ -197,12 +219,14 @@ jobs:
             --set-env-vars VITE_API_URL="$SERVER_URL" \
             --project "$PROJECT"
 
+      # Smoke test: llama /health con reintentos; el step falla si el endpoint no responde OK
       - name: Smoke test QA
         run: |
           URL=$(gcloud run services describe tp5-server-qa --region "$REGION" --project "$PROJECT" --format='value(status.url)')
           echo "QA server URL: $URL"
           curl --fail --retry 5 --retry-delay 2 "$URL/health"
       
+      # Si algún step anterior falló, este bloque intenta hacer rollback usando la imagen previa
       - name: Rollback on failure (QA)
         if: failure()
         run: |
@@ -212,21 +236,25 @@ jobs:
           echo "Rolling back to previous image: ${PREV_IMAGE}"
           gcloud run deploy tp5-server-qa --image "${PREV_IMAGE}" --region "${REGION}" --project "${PROJECT}"
 
+  # Job: despliegue a producción (requiere aprobación a nivel de environment en GH Actions)
   deploy-prod:
     name: Deploy to Production (requires approval)
     needs: deploy-qa
     runs-on: ubuntu-latest
     environment: prod
     steps:
+      # Clona repo
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Guarda imagen previa de PROD para permitir rollback
       - name: Record previous server image (PROD)
         id: prev_image_prod
         run: |
           echo "PREV_IMAGE=${{ steps.prev_image_prod_output }}" >> $GITHUB_ENV || true
           echo "PREV_IMAGE=$(gcloud run services describe tp5-server --region ${REGION} --project ${PROJECT} --format='value(spec.template.spec.containers[0].image)')" >> $GITHUB_ENV
 
+      # Guarda revisión previa de PROD
       - name: Record previous revision (PROD)
         id: record_prev_rev
         run: |
@@ -234,6 +262,7 @@ jobs:
           echo "PREV_REVISION=$PREV_REVISION" >> $GITHUB_ENV
           echo "PREV_REVISION=$PREV_REVISION"
 
+      # Verifica secret PROD
       - name: Debug - verify prod secret available
         env:
           GCP_SA_KEY_PROD: ${{ secrets.GCP_SA_KEY_PROD }}
@@ -244,22 +273,26 @@ jobs:
             echo "GCP_SA_KEY_PROD is present"
           fi
 
+      # Autenticación PROD
       - name: Authenticate to GCP (PROD)
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY_PROD }}
 
+      # Instala gcloud en el runner
       - name: Setup gcloud CLI (PROD)
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           version: 'latest'
 
+      # Habilita APIs necesarias
       - name: Ensure required GCP APIs enabled
         run: |
           gcloud services enable sql-component.googleapis.com sqladmin.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project="${{ secrets.GCP_PROJECT_ID }}" --quiet || true
           sleep 5
 
+      # Despliega server PROD conectado a Cloud SQL
       - name: Deploy server PROD (with Cloud SQL)
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
@@ -275,6 +308,7 @@ jobs:
             --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="${DB_USER}",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${DB_NAME}" \
             --project "$PROJECT" --quiet
 
+      # Realiza despliegue canario (10% tráfico al nuevo revision) para pruebas en producción
       - name: Canary traffic (PROD) - route 10% to new revision
         run: |
           NEW_REVISION=$(gcloud run services describe tp5-server --region ${REGION} --project ${PROJECT} --format='value(status.latestReadyRevisionName)')
@@ -286,6 +320,7 @@ jobs:
             gcloud run services update-traffic tp5-server --region ${REGION} --to-latest --project ${PROJECT}
           fi
 
+      # Backup DB, ejecutar migraciones y promover si las migraciones pasan; rollback si fallan
       - name: Backup DB, run migrations (PROD) and promote on success
         env:
           PROJECT: ${{ secrets.GCP_PROJECT_ID }}
@@ -382,6 +417,7 @@ jobs:
 
           echo "Done."
 
+      #imagen del servidor a cloud para producción, configuro la instancia de conexion
       - name: Deploy server PROD
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-server:${SHA}"
@@ -393,6 +429,7 @@ jobs:
             --set-env-vars FORECAST_COUNT=10,CLIENT_URL="https://tp5-client-366o626kia-uc.a.run.app" \
             --project "$PROJECT"
 
+      #imagen del cliente a cloud para producción
       - name: Deploy client PROD
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp5-client:${SHA}"
@@ -404,18 +441,21 @@ jobs:
             --set-env-vars VITE_API_URL="https://tp5-server-366o626kia-uc.a.run.app" \
             --project "$PROJECT"
 
+      # Smoke test: llama /health con reintentos; el step falla si el endpoint no responde OK
       - name: Smoke test PROD
         run: |
           URL=$(gcloud run services describe tp5-server --region "$REGION" --project "$PROJECT" --format='value(status.url)')
           echo "PROD server URL: $URL"
           curl --fail --retry 5 --retry-delay 2 "$URL/health"
 
+      #si todo ok, promuevo revision a 100% (trafico)
       - name: Promote new revision to 100% (PROD)
         if: success()
         run: |
           echo "Promoting NEW_REVISION=${NEW_REVISION} to 100%"
           gcloud run services update-traffic tp5-server --region ${REGION} --to-revisions ${NEW_REVISION}=100 --project ${PROJECT}
 
+      #se ejecuta solo si algun paso anterior paso, intenta revertir el 100% a la revision previa
       - name: Rollback to previous revision (PROD)
         if: failure()
         run: |
@@ -435,6 +475,8 @@ jobs:
           # optionally save migration job output to a file from the commands above (use tee in runtime)
           # echo "migration logs saved to migration-log.txt" (generate that file where you run the job)
 
+      #esta func y la sig:
+      #sube el nombre del archvio de buckup y los logs de la migracion como artefactos
       - name: Upload backup metadata artifact
         if: always()
         uses: actions/upload-artifact@v4

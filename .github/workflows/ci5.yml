@@ -13,10 +13,13 @@ on:
 
 jobs:
   debug:
+    # inspecciona el workspace para depuración de rutas (antes habia problemas con paths relativos)
     name: Debug workspace
     runs-on: ubuntu-latest
     steps:
+      #clona repo 
       - uses: actions/checkout@v4
+      #muestra rutas y lista de archivos para verficar estructura (tmb para solucionar un problema))
       - name: Show workspace path
         run: |
           echo "GITHUB_WORKSPACE=${{ github.workspace }}"
@@ -24,11 +27,13 @@ jobs:
           echo "List repo root recursive (first 3 levels)"
           find "${{ github.workspace }}" -maxdepth 3 -type d -print || true
 
+  #construye server y sube su artefacto
   server-build:
     name: Build Server
     runs-on: ubuntu-latest
     needs: debug
     steps:
+      #clona repo
       - uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -36,14 +41,17 @@ jobs:
           node-version: '18'
       - name: Install dependencies (server)
         run: npm ci --prefix TP5/server
+      #ejecuta el script de build de server (crea dist)
       - name: Build (server)
         run: npm run build --prefix TP5/server
+      #sube el artifact
       - name: Upload server artifact
         uses: actions/upload-artifact@v4
         with:
           name: server-dist
           path: TP5/server/dist
 
+#construye client y sube su artefacto (lo mimso)
   client-build:
     name: Build Client
     runs-on: ubuntu-latest
