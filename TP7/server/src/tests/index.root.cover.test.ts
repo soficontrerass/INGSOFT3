@@ -1,10 +1,6 @@
 // ...existing code...
-export {};
-
-beforeEach(() => {
-  jest.resetModules();
-  jest.clearAllMocks();
-});
+jest.resetModules();
+jest.clearAllMocks();
 
 test('index registers non-production root handler that calls res.send', async () => {
   await jest.isolateModulesAsync(async () => {
@@ -18,7 +14,8 @@ test('index registers non-production root handler that calls res.send', async ()
       on: jest.fn(),
     };
 
-    // mock the app module as seen by require('../index') (test file is in src/tests)
+    // mock fs so CLIENT_DIST is considered absent -> code will call res.send(...)
+    jest.doMock('fs', () => ({ existsSync: () => false }));
     jest.doMock('../app', () => server);
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -26,7 +23,7 @@ test('index registers non-production root handler that calls res.send', async ()
 
     expect(rootHandler).toBeDefined();
 
-    const mockRes: any = { send: jest.fn(), redirect: jest.fn() };
+    const mockRes: any = { send: jest.fn(), redirect: jest.fn(), sendFile: jest.fn() };
     rootHandler!({} as any, mockRes);
     expect(mockRes.send).toHaveBeenCalledWith('Server running. Use the client UI to interact.');
   });
