@@ -15,8 +15,9 @@ app.use((req, _res, next) => {
 app.get('/weatherforecast', async (_req, res) => {
   try {
     // llamar a la ruta interna /api/forecasts y mapear a la forma esperada por el cliente
-    const host = `${_req.protocol}://${_req.get('host')}`;
-    const resp = await fetch(`${host}/api/forecasts`);
+    const internalHost = process.env.INTERNAL_HOST ?? '127.0.0.1';
+    const internalPort = process.env.PORT ?? '8080';
+    const resp = await fetch(`http://${internalHost}:${internalPort}/api/forecasts`);
     const rows = await resp.json();
 
     const mapped = (Array.isArray(rows) ? rows : (rows.rows || []))
