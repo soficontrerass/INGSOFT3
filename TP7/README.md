@@ -1,38 +1,35 @@
-# TP7 - Server — Documentación técnica
-// ...existing code...
-Resumen
-- Proyecto: TP7 (server)
-- Cliente: TP7/client
-- Documentación breve sobre decisiones, cobertura, pruebas de integración y pipeline.
-- Evidencias en ./evidencias (capturas de SonarCloud, cobertura y artifacts).
+# TP7
 
-Resumen rápido / Comandos
-- Servidor:
-```bash
+Proyecto TP7 - Entrega TP7.
+
+## Server
+Instrucciones para el servidor (TP7):
+cd TP7/server
+npm install
+npm run test:ci
+
+## Client
+Instrucciones para el cliente (TP7):
+cd TP7/client
+npm install
+npm run test:ci
+
+## Cobertura
+Los informes de cobertura se generan en:
+- server/coverage
+- client/coverage
+
+## Evidencias
+Imágenes de evidencia:
+- evidencias/coveragefrontend.png
+- evidencias/coveragebackend.png
+
+## Integración CI
+Integración CI / Integración continua
+
+## Resumen rápido
+Resumen rápido de comandos:
 cd TP7/server
 npm run test:ci
-```
-- Cliente (si existe):
-```bash
 cd TP7/client
 npm run test:ci
-```
-
-Capturas de reportes (evidencias) - rutas esperadas por tests
-- evidencias/coveragebackend.png
-- evidencias/coveragefrontend.png
-- evidencias/servercoverage.png
-- evidencias/clientcoverage.png
-- evidencias/coverage.png
-- evidencias/qualitygate.png
-- evidencias/issues.png
-- evidencias/artifacts.png
-- evidencias/e2e.png
-- evidencias/e2eresumen.png
-
-Cobertura
-- Reportes localizados en:
-  - server/coverage
-  - client/coverage
-
-...existing code...
