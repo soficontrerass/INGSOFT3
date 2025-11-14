@@ -37,10 +37,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Write GCP key (QA)
+      - name: Write GCP key (QA) (robust)
         env:
           KEY: ${{ secrets.GCP_SA_KEY_QA8 }}
-        run: echo "$KEY" > /tmp/gcp-key.json
+        run: |
+          # write the secret exactly as received
+          printf '%s' "$KEY" > /tmp/gcp-key.json
+          # validate JSON; if invalid, replace literal "\n" with real newlines
+          python3 - <<'PY'
+          import json,sys
+          p='/tmp/gcp-key.json'
+          s=open(p,'r',encoding='utf-8').read()
+          try:
+              json.loads(s)
+          except Exception:
+              s=s.replace('\\n','\n')
+              open(p,'w',encoding='utf-8').write(s)
+          print('gcp key length =', len(s))
+          PY
 
       - name: Setup gcloud (QA)
         uses: google-github-actions/setup-gcloud@v1
