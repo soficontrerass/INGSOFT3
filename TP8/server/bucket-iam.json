@@ -1,0 +1,25 @@
+{
+    "bindings":  [
+                     {
+                         "members":  [
+                                         "projectEditor:ingsoft3-tp5-sof",
+                                         "projectOwner:ingsoft3-tp5-sof"
+                                     ],
+                         "role":  "roles/storage.legacyBucketOwner"
+                     },
+                     {
+                         "members":  [
+                                         "projectViewer:ingsoft3-tp5-sof"
+                                     ],
+                         "role":  "roles/storage.legacyBucketReader"
+                     },
+                     {
+                         "members":  [
+                                         "serviceAccount:github-actions-prod@ingsoft3-tp5-sof.iam.gserviceaccount.com",
+                                         "serviceAccount:service-496111262627@gcp-sa-cloud-sql.iam.gserviceaccount.com"
+                                     ],
+                         "role":  "roles/storage.objectCreator"
+                     }
+                 ],
+    "etag":  "CAM="
+}
