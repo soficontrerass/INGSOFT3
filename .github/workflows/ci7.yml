@@ -131,6 +131,18 @@ jobs:
       - name: Check coverage thresholds (server & client)
         run: node TP7/tools/check-coverage.js
 
+      - name: Install & test (server)
+        working-directory: TP7/server
+        run: |
+          npm ci
+          npm run test:ci   # debe generar server/coverage/lcov.info
+
+      - name: Install & test (client)
+        working-directory: TP7/client
+        run: |
+          npm ci
+          npm run test:ci   # debe generar client/coverage/lcov.info
+
       # Ejecutar SonarCloud scan (envía fuentes y paths de lcov)
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
