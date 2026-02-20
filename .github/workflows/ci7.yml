@@ -143,6 +143,36 @@ jobs:
           npm ci
           npm run test:ci   # debe generar client/coverage/lcov.info
 
+      - name: Debug list TP7 files
+        run: |
+          echo "PWD: $PWD"
+          echo "=== tree TP7 (max depth 3) ==="
+          ls -la TP7 || true
+          echo "=== server coverage ==="
+          if [ -f TP7/server/coverage/lcov.info ]; then
+            echo "server lcov exists:" && ls -lh TP7/server/coverage/lcov.info
+            echo "first lines:" && sed -n '1,20p' TP7/server/coverage/lcov.info
+          else
+            echo "server lcov NOT FOUND"
+          fi
+          echo "=== client coverage ==="
+          if [ -f TP7/client/coverage/lcov.info ]; then
+            echo "client lcov exists:" && ls -lh TP7/client/coverage/lcov.info
+            echo "first lines:" && sed -n '1,20p' TP7/client/coverage/lcov.info
+          else
+            echo "client lcov NOT FOUND"
+          fi
+        shell: bash
+
+      - name: Debug print Sonar args env
+        run: |
+          echo "SONAR_PROJECT_KEY=${{ secrets.SONAR_PROJECT_KEY }}"
+          echo "SONAR_ORGANIZATION=${{ secrets.SONAR_ORGANIZATION }}"
+          echo "projectBaseDir=TP7"
+          echo "args:"
+          echo "-Dsonar.javascript.lcov.reportPaths=server/coverage/lcov.info,client/coverage/lcov.info"
+        shell: bash
+
 
       # Ejecutar SonarCloud scan (envía fuentes y paths de lcov)
       - name: SonarCloud Scan
