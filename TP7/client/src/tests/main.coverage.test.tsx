@@ -3,6 +3,11 @@ import { afterEach, test, expect, vi } from 'vitest';
 import { waitFor, screen } from '@testing-library/react';
 import { act } from 'react';
 
+// <-- Insert: mock deterministic de Math.random para tests (evita Security Hotspot) -->
+beforeEach(() => {
+  vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
+});
+
 let createdEls: HTMLElement[] = [];
 
 afterEach(() => {
