@@ -1,0 +1,224 @@
+name: Deploy TP7 to Cloud Run
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'TP7/**'
+      - '.github/workflows/deploy-tp7.yml'
+  workflow_dispatch: {}
+
+env:
+  REPO: tp7-repo
+  PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: ${{ secrets.GCP_REGION }}
+  SHA: ${{ github.sha }}
+
+jobs:
+  build-server:
+    name: Build & push server image (TP7)
+    runs-on: ubuntu-latest
+    environment: qa
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP (QA)
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_QA }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          version: latest
+
+      - name: Enable required APIs
+        run: |
+          gcloud services enable run.googleapis.com sqladmin.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com --project "$PROJECT" --quiet || true
+
+      - name: Build & push TP7 server image
+        run: |
+          SERVER_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker build -t "${SERVER_IMAGE}" TP7/server
+          docker push "${SERVER_IMAGE}"
+
+  deploy-qa:
+    name: Deploy TP7 to QA
+    needs: build-server
+    runs-on: ubuntu-latest
+    environment: qa
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP (QA)
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_QA }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          version: latest
+
+      - name: Deploy TP7 server QA (Cloud SQL)
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
+          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_QA }}"
+          gcloud run deploy tp7-server-qa \
+            --image "${IMAGE}" \
+            --region "${REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
+            --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_QA }}",DB_NAME="${{ secrets.DB_NAME_QA }}",NODE_ENV="qa",PORT="8080" \
+            --project "${PROJECT}" --quiet
+
+      - name: Run migrations QA (Cloud Run Job)
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
+          JOB_NAME="tp7-migrate-qa"
+          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_QA }}"
+
+          if ! gcloud run jobs describe "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" >/dev/null 2>&1; then
+            gcloud run jobs create "${JOB_NAME}" \
+              --image "${IMAGE}" \
+              --region "${REGION}" \
+              --command node --args dist/migrate.js \
+              --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
+              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_QA }}",DB_NAME="${{ secrets.DB_NAME_QA }}" \
+              --project "${PROJECT}"
+          else
+            gcloud run jobs update "${JOB_NAME}" \
+              --image "${IMAGE}" \
+              --region "${REGION}" \
+              --command node --args dist/migrate.js \
+              --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
+              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_QA }}",DB_NAME="${{ secrets.DB_NAME_QA }}" \
+              --project "${PROJECT}" || true
+          fi
+
+          gcloud run jobs execute "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" --wait
+
+      - name: Smoke test server QA
+        run: |
+          URL=$(gcloud run services describe tp7-server-qa --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')
+          echo "QA server URL: $URL"
+          curl --fail --retry 5 --retry-delay 3 "$URL/health"
+
+      - name: Build & push TP7 client image (QA API URL)
+        run: |
+          SERVER_URL=$(gcloud run services describe tp7-server-qa --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')
+          CLIENT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-client:${SHA}-qa"
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker build --build-arg VITE_API_URL="${SERVER_URL}" -t "${CLIENT_IMAGE}" TP7/client
+          docker push "${CLIENT_IMAGE}"
+
+      - name: Deploy TP7 client QA
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-client:${SHA}-qa"
+          gcloud run deploy tp7-client-qa \
+            --image "${IMAGE}" \
+            --region "${REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --project "${PROJECT}" --quiet
+
+      - name: Smoke test client QA
+        run: |
+          URL=$(gcloud run services describe tp7-client-qa --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')
+          echo "QA client URL: $URL"
+          curl --fail --retry 5 --retry-delay 3 "$URL"
+
+  deploy-prod:
+    name: Deploy TP7 to PROD (manual approval)
+    needs: deploy-qa
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP (PROD)
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_PROD }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          version: latest
+
+      - name: Deploy TP7 server PROD (Cloud SQL)
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
+          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_PROD }}"
+          gcloud run deploy tp7-server \
+            --image "${IMAGE}" \
+            --region "${REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
+            --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${{ secrets.DB_NAME_PROD }}",NODE_ENV="production",PORT="8080" \
+            --project "${PROJECT}" --quiet
+
+      - name: Run migrations PROD (Cloud Run Job)
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
+          JOB_NAME="tp7-migrate-prod"
+          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_PROD }}"
+
+          if ! gcloud run jobs describe "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" >/dev/null 2>&1; then
+            gcloud run jobs create "${JOB_NAME}" \
+              --image "${IMAGE}" \
+              --region "${REGION}" \
+              --command node --args dist/migrate.js \
+              --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
+              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${{ secrets.DB_NAME_PROD }}" \
+              --project "${PROJECT}"
+          else
+            gcloud run jobs update "${JOB_NAME}" \
+              --image "${IMAGE}" \
+              --region "${REGION}" \
+              --command node --args dist/migrate.js \
+              --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
+              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${{ secrets.DB_NAME_PROD }}" \
+              --project "${PROJECT}" || true
+          fi
+
+          gcloud run jobs execute "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" --wait
+
+      - name: Smoke test server PROD
+        run: |
+          URL=$(gcloud run services describe tp7-server --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')
+          echo "PROD server URL: $URL"
+          curl --fail --retry 5 --retry-delay 3 "$URL/health"
+
+      - name: Build & push TP7 client image (PROD API URL)
+        run: |
+          SERVER_URL=$(gcloud run services describe tp7-server --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')
+          CLIENT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-client:${SHA}-prod"
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker build --build-arg VITE_API_URL="${SERVER_URL}" -t "${CLIENT_IMAGE}" TP7/client
+          docker push "${CLIENT_IMAGE}"
+
+      - name: Deploy TP7 client PROD
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-client:${SHA}-prod"
+          gcloud run deploy tp7-client \
+            --image "${IMAGE}" \
+            --region "${REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --project "${PROJECT}" --quiet
+
+      - name: Smoke test client PROD
+        run: |
+          URL=$(gcloud run services describe tp7-client --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')
+          echo "PROD client URL: $URL"
+          curl --fail --retry 5 --retry-delay 3 "$URL"
