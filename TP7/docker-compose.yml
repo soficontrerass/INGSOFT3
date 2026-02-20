@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: miPass
+      POSTGRES_DB: tp7_db
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tp7_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: tp7-server:local
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: "8080"
+      # URL que usa la app para conectarse a la DB (desde el contenedor)
+      DATABASE_URL: "postgres://postgres:miPass@db:5432/tp7_db"
+      DB_CONN: "postgres://postgres:miPass@db:5432/tp7_db"
+      FORECAST_COUNT: "5"
+    # ejecutar migraciones antes de arrancar el servidor
+    command: /bin/sh -c "npm run migrate && node dist/index.js"
+    ports:
+      - "8081:8080"   # host 8081 -> container 8080
+    volumes:
+      - ./server:/app
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        # URL que el navegador deberá usar para llamar a la API (host visible desde el navegador)
+        VITE_API_URL: "http://localhost:8081"
+    image: tp7-client:local
+    depends_on:
+      - server
+    ports:
+      - "3000:8080"   # host 3000 -> container 8080 (serve)
+    volumes:
+      - ./client:/app
+
+volumes:
+  db-data:
