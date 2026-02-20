@@ -32,4 +32,39 @@ describe('GET /weatherforecast additional branches', () => {
     const res = await request(app).get('/weatherforecast').expect(200);
     expect(Array.isArray(res.body)).toBe(true);
   });
+
+  it('returns upstream error payload when fetch response is not ok and has text()', async () => {
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 502,
+      text: async () => 'bad gateway',
+    });
+
+    const res = await request(app).get('/weatherforecast').expect(502);
+    expect(res.body).toMatchObject({ error: 'upstream', status: 502, message: 'bad gateway' });
+  });
+
+  it('falls back to response body string when not ok and text() is missing', async () => {
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      body: 'service unavailable',
+    });
+
+    const res = await request(app).get('/weatherforecast').expect(503);
+    expect(res.body).toMatchObject({ error: 'upstream', status: 503, message: 'service unavailable' });
+  });
+
+  it('uses json fallback when not ok and there is no text/body', async () => {
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({ detail: 'upstream-json-error' }),
+    });
+
+    const res = await request(app).get('/weatherforecast').expect(500);
+    expect(res.body.error).toBe('upstream');
+    expect(res.body.status).toBe(500);
+    expect(String(res.body.message)).toContain('upstream-json-error');
+  });
 });
