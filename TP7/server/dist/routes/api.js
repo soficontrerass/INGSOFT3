@@ -9,10 +9,7 @@ const db_1 = require("../db");
 const router = express_1.default.Router();
 router.get('/health', async (_req, res) => {
     try {
-        // check db connectivity if configured
-        if (process.env.DB_NAME || process.env.DATABASE_URL) {
-            await (0, db_1.query)('SELECT 1');
-        }
+        await (0, db_1.query)('SELECT 1'); // <- intentar siempre la consulta
         res.json({ status: 'ok' });
     }
     catch (err) {
