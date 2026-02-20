@@ -184,7 +184,6 @@ jobs:
             -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
             -Dsonar.branch.name=${{ github.ref_name }}
-            -Dsonar.sources=server/src,client/src
             -Dsonar.javascript.lcov.reportPaths=server/coverage/lcov.info,client/coverage/lcov.info
             -X
         env:
