@@ -143,26 +143,6 @@ jobs:
           npm ci
           npm run test:ci   # debe generar client/coverage/lcov.info
 
-      - name: Debug: listar artefactos y lcov
-        run: |
-          echo "PWD: $(pwd)"
-          echo "List TP7 tree"
-          ls -la TP7 || true
-          echo "Server coverage files:"
-          ls -la TP7/server/coverage || true
-          echo "Client coverage files:"
-          ls -la TP7/client/coverage || true
-          echo "Server lcov head:"
-          sed -n '1,40p' TP7/server/coverage/lcov.info || true
-          echo "Client lcov head:"
-          sed -n '1,40p' TP7/client/coverage/lcov.info || true
-          echo "Sizes:"
-          stat -c '%n %s' TP7/server/coverage/lcov.info || true
-          stat -c '%n %s' TP7/client/coverage/lcov.info || true
-          echo "Check SONAR args and projectBaseDir:"
-          echo "projectBaseDir=$GITHUB_WORKSPACE/TP7"
-          echo "args: ${{ toJson(matrix) }} " || true
-        shell: bash
 
       # Ejecutar SonarCloud scan (envía fuentes y paths de lcov)
       - name: SonarCloud Scan
