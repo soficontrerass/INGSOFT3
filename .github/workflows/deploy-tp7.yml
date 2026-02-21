@@ -10,15 +10,15 @@ on:
 
 env:
   REPO: tp7-repo
-  PROJECT: ${{ secrets.GCP_PROJECT_ID }}
-  REGION: ${{ secrets.GCP_REGION }}
+  PROJECT: ${{ secrets.GCP_PROJECT7_ID }}
+  REGION: ${{ secrets.GCP_REGION7 }}
   SHA: ${{ github.sha }}
 
 jobs:
   build-server:
     name: Build & push server image (TP7)
     runs-on: ubuntu-latest
-    environment: qa
+    environment: qa7
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,12 +26,12 @@ jobs:
       - name: Authenticate to GCP (QA)
         uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY_QA }}
+          credentials_json: ${{ secrets.GCP_SA_KEY7_QA }}
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v1
         with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          project_id: ${{ secrets.GCP_PROJECT7_ID }}
           version: latest
 
       - name: Enable required APIs
@@ -49,7 +49,7 @@ jobs:
     name: Deploy TP7 to QA
     needs: build-server
     runs-on: ubuntu-latest
-    environment: qa
+    environment: qa7
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -57,32 +57,32 @@ jobs:
       - name: Authenticate to GCP (QA)
         uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY_QA }}
+          credentials_json: ${{ secrets.GCP_SA_KEY7_QA }}
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v1
         with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          project_id: ${{ secrets.GCP_PROJECT7_ID }}
           version: latest
 
       - name: Deploy TP7 server QA (Cloud SQL)
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
-          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_QA }}"
+          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME7_QA }}"
           gcloud run deploy tp7-server-qa \
             --image "${IMAGE}" \
             --region "${REGION}" \
             --platform managed \
             --allow-unauthenticated \
             --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
-            --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_QA }}",DB_NAME="${{ secrets.DB_NAME_QA }}",NODE_ENV="qa",PORT="8080" \
+            --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_QA }}",DB_NAME="${{ secrets.DB_NAME7_QA }}",NODE_ENV="qa",PORT="8080" \
             --project "${PROJECT}" --quiet
 
       - name: Run migrations QA (Cloud Run Job)
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
           JOB_NAME="tp7-migrate-qa"
-          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_QA }}"
+          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME7_QA }}"
 
           if ! gcloud run jobs describe "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" >/dev/null 2>&1; then
             gcloud run jobs create "${JOB_NAME}" \
@@ -90,7 +90,7 @@ jobs:
               --region "${REGION}" \
               --command node --args dist/migrate.js \
               --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
-              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_QA }}",DB_NAME="${{ secrets.DB_NAME_QA }}" \
+              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_QA }}",DB_NAME="${{ secrets.DB_NAME7_QA }}" \
               --project "${PROJECT}"
           else
             gcloud run jobs update "${JOB_NAME}" \
@@ -98,7 +98,7 @@ jobs:
               --region "${REGION}" \
               --command node --args dist/migrate.js \
               --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
-              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_QA }}",DB_NAME="${{ secrets.DB_NAME_QA }}" \
+              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_QA }}",DB_NAME="${{ secrets.DB_NAME7_QA }}" \
               --project "${PROJECT}" || true
           fi
 
@@ -138,7 +138,7 @@ jobs:
     name: Deploy TP7 to PROD (manual approval)
     needs: deploy-qa
     runs-on: ubuntu-latest
-    environment: prod
+    environment: prod7
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -146,32 +146,32 @@ jobs:
       - name: Authenticate to GCP (PROD)
         uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY_PROD }}
+          credentials_json: ${{ secrets.GCP_SA_KEY7_PROD }}
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v1
         with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          project_id: ${{ secrets.GCP_PROJECT7_ID }}
           version: latest
 
       - name: Deploy TP7 server PROD (Cloud SQL)
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
-          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_PROD }}"
+          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME7_PROD }}"
           gcloud run deploy tp7-server \
             --image "${IMAGE}" \
             --region "${REGION}" \
             --platform managed \
             --allow-unauthenticated \
             --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
-            --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${{ secrets.DB_NAME_PROD }}",NODE_ENV="production",PORT="8080" \
+            --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_PROD }}",DB_NAME="${{ secrets.DB_NAME7_PROD }}",NODE_ENV="production",PORT="8080" \
             --project "${PROJECT}" --quiet
 
       - name: Run migrations PROD (Cloud Run Job)
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
           JOB_NAME="tp7-migrate-prod"
-          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME_PROD }}"
+          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME7_PROD }}"
 
           if ! gcloud run jobs describe "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" >/dev/null 2>&1; then
             gcloud run jobs create "${JOB_NAME}" \
@@ -179,7 +179,7 @@ jobs:
               --region "${REGION}" \
               --command node --args dist/migrate.js \
               --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
-              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${{ secrets.DB_NAME_PROD }}" \
+              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_PROD }}",DB_NAME="${{ secrets.DB_NAME7_PROD }}" \
               --project "${PROJECT}"
           else
             gcloud run jobs update "${JOB_NAME}" \
@@ -187,7 +187,7 @@ jobs:
               --region "${REGION}" \
               --command node --args dist/migrate.js \
               --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
-              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS_PROD }}",DB_NAME="${{ secrets.DB_NAME_PROD }}" \
+              --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_PROD }}",DB_NAME="${{ secrets.DB_NAME7_PROD }}" \
               --project "${PROJECT}" || true
           fi
 
