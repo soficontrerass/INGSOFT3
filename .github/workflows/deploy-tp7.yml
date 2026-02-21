@@ -69,11 +69,13 @@ jobs:
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
           INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME7_QA }}"
+          RUNTIME_SA="tp7-sa-qa@${PROJECT}.iam.gserviceaccount.com"
           gcloud run deploy tp7-server-qa \
             --image "${IMAGE}" \
             --region "${REGION}" \
             --platform managed \
             --allow-unauthenticated \
+            --service-account "${RUNTIME_SA}" \
             --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
             --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_QA }}",DB_NAME="${{ secrets.DB_NAME7_QA }}",NODE_ENV="qa",PORT="8080" \
             --project "${PROJECT}" --quiet
@@ -83,12 +85,14 @@ jobs:
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
           JOB_NAME="tp7-migrate-qa"
           INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME7_QA }}"
+          RUNTIME_SA="tp7-sa-qa@${PROJECT}.iam.gserviceaccount.com"
 
           if ! gcloud run jobs describe "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" >/dev/null 2>&1; then
             gcloud run jobs create "${JOB_NAME}" \
               --image "${IMAGE}" \
               --region "${REGION}" \
               --command node --args dist/migrate.js \
+              --service-account "${RUNTIME_SA}" \
               --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
               --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_QA }}",DB_NAME="${{ secrets.DB_NAME7_QA }}" \
               --project "${PROJECT}"
@@ -97,6 +101,7 @@ jobs:
               --image "${IMAGE}" \
               --region "${REGION}" \
               --command node --args dist/migrate.js \
+              --service-account "${RUNTIME_SA}" \
               --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
               --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_QA }}",DB_NAME="${{ secrets.DB_NAME7_QA }}" \
               --project "${PROJECT}" || true
@@ -121,11 +126,13 @@ jobs:
       - name: Deploy TP7 client QA
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-client:${SHA}-qa"
+          RUNTIME_SA="tp7-sa-qa@${PROJECT}.iam.gserviceaccount.com"
           gcloud run deploy tp7-client-qa \
             --image "${IMAGE}" \
             --region "${REGION}" \
             --platform managed \
             --allow-unauthenticated \
+            --service-account "${RUNTIME_SA}" \
             --project "${PROJECT}" --quiet
 
       - name: Smoke test client QA
@@ -158,11 +165,13 @@ jobs:
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
           INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME7_PROD }}"
+          RUNTIME_SA="tp7-sa-prod@${PROJECT}.iam.gserviceaccount.com"
           gcloud run deploy tp7-server \
             --image "${IMAGE}" \
             --region "${REGION}" \
             --platform managed \
             --allow-unauthenticated \
+            --service-account "${RUNTIME_SA}" \
             --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
             --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_PROD }}",DB_NAME="${{ secrets.DB_NAME7_PROD }}",NODE_ENV="production",PORT="8080" \
             --project "${PROJECT}" --quiet
@@ -172,12 +181,14 @@ jobs:
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
           JOB_NAME="tp7-migrate-prod"
           INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME7_PROD }}"
+          RUNTIME_SA="tp7-sa-prod@${PROJECT}.iam.gserviceaccount.com"
 
           if ! gcloud run jobs describe "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" >/dev/null 2>&1; then
             gcloud run jobs create "${JOB_NAME}" \
               --image "${IMAGE}" \
               --region "${REGION}" \
               --command node --args dist/migrate.js \
+              --service-account "${RUNTIME_SA}" \
               --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
               --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_PROD }}",DB_NAME="${{ secrets.DB_NAME7_PROD }}" \
               --project "${PROJECT}"
@@ -186,6 +197,7 @@ jobs:
               --image "${IMAGE}" \
               --region "${REGION}" \
               --command node --args dist/migrate.js \
+              --service-account "${RUNTIME_SA}" \
               --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
               --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_PROD }}",DB_NAME="${{ secrets.DB_NAME7_PROD }}" \
               --project "${PROJECT}" || true
@@ -210,11 +222,13 @@ jobs:
       - name: Deploy TP7 client PROD
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-client:${SHA}-prod"
+          RUNTIME_SA="tp7-sa-prod@${PROJECT}.iam.gserviceaccount.com"
           gcloud run deploy tp7-client \
             --image "${IMAGE}" \
             --region "${REGION}" \
             --platform managed \
             --allow-unauthenticated \
+            --service-account "${RUNTIME_SA}" \
             --project "${PROJECT}" --quiet
 
       - name: Smoke test client PROD
