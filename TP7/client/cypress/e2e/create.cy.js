@@ -8,11 +8,13 @@ describe('App smoke / List load', () => {
         { date: new Date(Date.now() + 86400000).toISOString(), temperatureC: 18, summary: 'Cloudy' }
       ]
     }).as('getForecasts');
+    cy.intercept('GET', '**/api/favorites', { statusCode: 200, body: [] }).as('getFavorites');
+    cy.intercept('GET', '**/api/searches', { statusCode: 200, body: [] }).as('getSearches');
 
     cy.visit('/', { timeout: 10000 });
     cy.wait('@getForecasts');
-    cy.contains('TP5 - Weather Forecast').should('exist');
-    cy.get('ul').should('exist');
-    cy.get('ul > li').its('length').should('be.gte', 1);
+    cy.contains('Weather Forecast').should('exist');
+    cy.contains('Sunny').should('exist');
+    cy.contains('20°C').should('exist');
   });
 });
