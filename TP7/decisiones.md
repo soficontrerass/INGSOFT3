@@ -131,13 +131,62 @@ Valida que cliente estático (dist) está sirviendo y responde 200.
 
 **Status**: ✅ Ambos jobs completaron smoke tests exitosamente.
 
----\nRegistro de acciones realizadas (resumen)
+---
+
+Registro de acciones realizadas (resumen)
 - Tests actualizados para aislar módulos y mockear db antes del require.
 - Propuesta/patch para reemplazar Math.random por crypto.randomInt.
 - Propuesta/patch para eliminar req.get('host') y usar INTERNAL_HOST/PORT.
-- GCP infrastructure configurada (Cloud Run, Cloud SQL, Artifact Registry, Service Accounts).
-- GitHub workflow `deploy-tp7.yml` con 3 jobs (build-server, deploy-qa, deploy-prod).
+- GCP infrastructure configurada (Cloud Run, Cloud SQL, Artifact Registry, Service Accounts) via Terraform.
+- GitHub workflow `deploy-tp7.yml` con 3 jobs (build-server, deploy-qa, deploy-prod) con cierre de circuito.
 - Smoke tests en QA y PROD validando server health + client load.
-- Documentación en `decisiones.md` y evidencias en `./evidencias`.
+- Documentación completa: `GCP_SETUP.md` + `GITHUB_SECRETS_TEMPLATE.md` + Terraform (main.tf, qa.tfvars, prod.tfvars).
+- Multi-ambiente local: docker-compose.yml (DEV), docker-compose.prod.yml (PROD), .env.qa / .env.prod templates.
 
-Fin.
+---
+
+## 10. Terraform Infrastructure as Code (Cloud Run + Cloud SQL + Artifact Registry)
+
+### Características principales
+
+**Terraform (`infra/terraform/main.tf`):**
+- Cloud Run services para server y client (QA y PROD con diferentes configs)
+- Cloud SQL PostgreSQL 15 con backup automático
+- Artifact Registry Docker repo
+- Service Accounts + IAM roles granulares
+- Outputs para GitHub Secrets (connection strings, URLs, passwords)
+
+**Variables y Environments (`qa.tfvars`, `prod.tfvars`):**
+- QA: `db-f1-micro`, max 10 replicas, min 0 (scale to zero)
+- PROD: `db-n1-standard-1`, max 100 replicas, min 1, deletion protection ON
+
+**Deployment Workflow (`deploy-tp7.yml`):**
+1. **build-server**: Build Docker image, push a Artifact Registry
+2. **deploy-qa**: Deploy QA (automático), migrations, smoke tests
+3. **deploy-prod**: Deploy PROD (manual approval), idéntico a QA
+
+### Setup Quickstart
+
+1. **Crear GCP project** e implementar instrucciones en `GCP_SETUP.md` (Steps 1-6)
+2. **Configurar GitHub Secrets** usando template en `GITHUB_SECRETS_TEMPLATE.md`
+3. **Desplegar con Terraform**:
+   ```bash
+   cd TP7/infra/terraform
+   terraform init
+   terraform workspace new qa
+   terraform apply -var-file="qa.tfvars"
+   ```
+4. **Trigger deploy via GitHub**: Push a main, workflow se ejecuta automáticamente
+5. **Monitorear**: Ver logs en Cloud Run console, URL de servicios en terraform output
+
+### Security & Best Practices
+
+- **Secrets Management**: Todos los passwords en GitHub Secrets (no en código)
+- **IAM Roles**: Least privilege (service accounts solo con roles necesarios)
+- **HTTPS**: Cloud Run enforces HTTPS, cert automático
+- **Backups**: Cloud SQL backup automático diario
+- **Deletion Protection**: PROD tiene deletion_protection = true
+
+---
+
+Fin del documento.

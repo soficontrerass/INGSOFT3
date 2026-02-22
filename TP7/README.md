@@ -1,22 +1,47 @@
+# TP7 - Weather Forecast App
+
+## Quick Links
+
+📋 **Documentación**:
+- [decisiones.md](./decisiones.md) - Arquitectura, decisiones técnicas y deployment strategy
+- [GCP_SETUP.md](./GCP_SETUP.md) - Guía paso a paso para configurar GCP Cloud Run + Cloud SQL
+- [GITHUB_SECRETS_TEMPLATE.md](./GITHUB_SECRETS_TEMPLATE.md) - Template para GitHub Actions secrets
+- [infra/terraform/](./infra/terraform/) - Infrastructure as Code (main.tf, qa.tfvars, prod.tfvars)
+
+## Deployment Targets
+
+| Ambiente | Local | QA Cloud | PROD Cloud |
+|----------|-------|----------|-----------|
+| **Método** | `docker compose up` | Auto CI (push main) | Manual approval |
+| **Workflow** | Docker Compose | GitHub Actions | GitHub Actions |
+| **DB** | Local Postgres | Cloud SQL | Cloud SQL |
+| **Server** | http://localhost:8081 | Cloud Run | Cloud Run |
+| **Client** | http://localhost:3000 | Cloud Run | Cloud Run |
+| **Guide** | [README.md§7](#7-gestión-de-ambientes-devqaprod) | [GCP_SETUP.md](./GCP_SETUP.md) | [GCP_SETUP.md](./GCP_SETUP.md) |
+
+---
+
 # TP7 - Server — Documentación técnica
 
 Resumen
-- Proyecto: TP7 (server)
-- Documentación breve sobre decisiones, cobertura, pruebas de integración y pipeline.
-- Evidencias en ./evidencias (capturas de SonarCloud, cobertura y artifacts).
+- Proyecto: TP7 (server + client + database)
+- Full-stack weather forecast app con testing, SonarCloud, y Cloud Run deployment
+- Evidencias en ./evidencias (capturas de SonarCloud, cobertura y artifacts)
 
 ## 1) Justificación tecnológica
 Stack elegido:
 - Node.js + TypeScript: ejecución rápida, tipado estático para reducir errores y buena integración con Jest/Sonar.
 - Express: micro-framework ligero para endpoints REST.
-- Jest + Supertest: pruebas unitarias e integración HTTP.
+- Jest + Supertest + Vitest + Cypress: pruebas unitarias, integración e2e.
 - SonarCloud: análisis estático y Quality Gate para mantener calidad y seguridad.
-- Postgres (simulado en tests): base de datos relacional habitual en entornos académicos/producción.
+- PostgreSQL: base de datos relacional con Cloud SQL para PROD.
+- Docker + Cloud Run: containerización y deployment serverless en GCP.
 
 Motivos:
 - Familiaridad y productividad con TypeScript y Node.
 - Ecosistema con herramientas maduras para testing y CI.
 - SonarCloud permite mantener políticas de calidad automatizadas.
+- Cloud Run = escalabilidad automática sin gestión de K8s.
 
 ## 2) Análisis de cobertura — inicial vs final
 - Cobertura inicial (antes de ajustes): ≈ 81% (ver evidencia `coverage.png`, `servercoverage.png`).

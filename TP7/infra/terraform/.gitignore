@@ -1,0 +1,23 @@
+# Terraform state and backup files
+*.tfstate
+*.tfstate.*
+*.tfvars.json
+terraform.tfvars
+override.tf.json
+crash.log
+crash.*.log
+
+# Local terraform environment
+.terraform/
+.terraform.lock.hcl
+.terraform.tfstate*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
