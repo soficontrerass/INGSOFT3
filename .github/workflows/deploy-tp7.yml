@@ -6,7 +6,12 @@ on:
     paths:
       - 'TP7/**'
       - '.github/workflows/deploy-tp7.yml'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      deploy_prod:
+        description: 'Deploy to PROD? (set to true to proceed)'
+        required: true
+        default: 'false'
 
 env:
   REPO: tp7-repo
@@ -170,10 +175,10 @@ jobs:
           curl --fail --retry 5 --retry-delay 3 "$URL"
 
   deploy-prod:
-    name: Deploy TP7 to PROD (manual approval)
-    needs: deploy-qa
+    name: Deploy TP7 to PROD (manual trigger only)
     runs-on: ubuntu-latest
     environment: prod7
+    if: github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
