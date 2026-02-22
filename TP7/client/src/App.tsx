@@ -144,7 +144,7 @@ export default function App() {
             onClick={() => setCurrentPage('home')}
             style={{
               padding: '8px 16px',
-              backgroundColor: '#007bff',
+              backgroundColor: '#ff6b6b',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
