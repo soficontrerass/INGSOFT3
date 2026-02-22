@@ -3,13 +3,22 @@ import fs from 'fs';
 import path from 'path';
 import { query, close } from './db';
 
-async function run() {
+export async function runMigrations() {
   try {
-    const sqlPath = path.join(__dirname, '..', 'migrations', '001_init.sql');
-    const sql = fs.readFileSync(sqlPath, 'utf8');
-    console.log('Running migration 001_init.sql');
-    await query(sql);
-    console.log('Migration applied');
+    const migrationsDir = path.join(__dirname, '..', 'migrations');
+    const migrationFiles = fs
+      .readdirSync(migrationsDir)
+      .filter((file) => file.endsWith('.sql'))
+      .sort((a, b) => a.localeCompare(b));
+
+    for (const file of migrationFiles) {
+      const sqlPath = path.join(migrationsDir, file);
+      const sql = fs.readFileSync(sqlPath, 'utf8');
+      console.log(`Running migration ${file}`);
+      await query(sql);
+    }
+
+    console.log('Migrations applied');
   } catch (err: any) {
     console.error('Migration failed', err);
     process.exitCode = 1;
@@ -18,5 +27,5 @@ async function run() {
   }
 }
 
-run();
+void runMigrations();
 // ...existing code...

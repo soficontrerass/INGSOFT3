@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import { vi } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import App from '../App';
 
 describe('App fetch flows', () => {
@@ -13,10 +13,15 @@ describe('App fetch flows', () => {
 
   afterEach(() => {
     vi.resetAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('shows loading then renders fetched items', async () => {
     const mockData = [{ date: '2025-12-01T00:00:00Z', temperatureC: 20, summary: 'Sunny' }];
+    mockedFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => []
+    });
     mockedFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => mockData
@@ -24,15 +29,19 @@ describe('App fetch flows', () => {
 
     render(<App />);
 
-    expect(screen.getByText(/Cargando.../i)).toBeInTheDocument();
+    expect(screen.getByText(/Loading forecast/i)).toBeInTheDocument();
 
-    await waitFor(() => expect(screen.queryByText(/Cargando.../i)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText(/Loading forecast/i)).not.toBeInTheDocument());
 
     expect(screen.getByText(/Sunny/)).toBeInTheDocument();
     expect(screen.getByText(/20°C/)).toBeInTheDocument();
   });
 
   it('shows error when response not ok', async () => {
+    mockedFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => []
+    });
     mockedFetch.mockResolvedValueOnce({ ok: false, status: 500 });
     render(<App />);
     await waitFor(() => expect(screen.getByText(/Error:/i)).toBeInTheDocument());
@@ -40,6 +49,10 @@ describe('App fetch flows', () => {
   });
 
   it('shows error when fetch rejects', async () => {
+    mockedFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => []
+    });
     mockedFetch.mockRejectedValueOnce(new Error('network'));
     render(<App />);
     await waitFor(() => expect(screen.getByText(/Error:/i)).toBeInTheDocument());

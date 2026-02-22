@@ -29,7 +29,7 @@ test('adds DOMContentLoaded listener and mounts when event fires', async () => {
     window.dispatchEvent(new Event('DOMContentLoaded'));
   });
 
-  await waitFor(() => expect(screen.getByText(/TP5 - Weather Forecast/i)).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByText(/Weather Forecast/i)).toBeInTheDocument());
 
   Object.defineProperty(document, 'readyState', { value: originalReadyState, configurable: true });
 });

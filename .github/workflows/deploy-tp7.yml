@@ -77,7 +77,7 @@ jobs:
             --allow-unauthenticated \
             --service-account "${RUNTIME_SA}" \
             --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
-            --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_QA }}",DB_NAME="${{ secrets.DB_NAME7_QA }}",NODE_ENV="qa" \
+            --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_QA }}",DB_NAME="${{ secrets.DB_NAME7_QA }}",NODE_ENV="qa",WEATHERAPI_KEY="${{ secrets.WEATHERAPI_KEY7_QA }}" \
             --project "${PROJECT}" --quiet
 
       - name: Run migrations QA (Cloud Run Job)
@@ -201,7 +201,7 @@ jobs:
             --allow-unauthenticated \
             --service-account "${RUNTIME_SA}" \
             --add-cloudsql-instances "${INSTANCE_CONN_NAME}" \
-            --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_PROD }}",DB_NAME="${{ secrets.DB_NAME7_PROD }}",NODE_ENV="production" \
+            --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_PROD }}",DB_NAME="${{ secrets.DB_NAME7_PROD }}",NODE_ENV="production",WEATHERAPI_KEY="${{ secrets.WEATHERAPI_KEY7_PROD }}" \
             --project "${PROJECT}" --quiet
 
       - name: Run migrations PROD (Cloud Run Job)

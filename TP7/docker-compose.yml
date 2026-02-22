@@ -31,12 +31,12 @@ services:
       DATABASE_URL: "postgres://postgres:miPass@db:5432/tp7_db"
       DB_CONN: "postgres://postgres:miPass@db:5432/tp7_db"
       FORECAST_COUNT: "5"
-    # ejecutar migraciones antes de arrancar el servidor
-    command: /bin/sh -c "npm run migrate && node dist/index.js"
+      # WeatherAPI key (https://www.weatherapi.com/)
+      WEATHERAPI_KEY: "5ef391d6676f48a6834145903262202"
+    # ejecutar migraciones compiladas, luego seed, y finalmente iniciar servidor
+    command: /bin/sh -c "node dist/migrate.js && node dist/seed.js && node dist/index.js"
     ports:
       - "8081:8080"   # host 8081 -> container 8080
-    volumes:
-      - ./server:/app
 
   client:
     build:
@@ -50,8 +50,6 @@ services:
       - server
     ports:
       - "3000:8080"   # host 3000 -> container 8080 (serve)
-    volumes:
-      - ./client:/app
 
 volumes:
   db-data:

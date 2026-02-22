@@ -32,7 +32,7 @@ test('mountRoot renders App into provided element', async () => {
     mod.mountRoot(el);
   });
 
-  await waitFor(() => expect(screen.getByText(/TP5 - Weather Forecast/i)).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByText(/Weather Forecast/i)).toBeInTheDocument());
   expect(el.innerHTML.length).toBeGreaterThan(0);
 });
 
@@ -59,7 +59,7 @@ test('adds DOMContentLoaded listener and mounts when event fires (coverage)', as
     window.dispatchEvent(new Event('DOMContentLoaded'));
   });
 
-  await waitFor(() => expect(screen.getByText(/TP5 - Weather Forecast/i)).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByText(/Weather Forecast/i)).toBeInTheDocument());
 
   Object.defineProperty(document, 'readyState', { value: originalReadyState, configurable: true });
 });
