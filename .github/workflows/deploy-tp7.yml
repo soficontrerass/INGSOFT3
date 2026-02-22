@@ -107,7 +107,31 @@ jobs:
               --project "${PROJECT}" || true
           fi
 
+          set +e
           gcloud run jobs execute "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" --wait
+          EXEC_STATUS=$?
+          set -e
+
+          if [ ${EXEC_STATUS} -ne 0 ]; then
+            echo "Migration job failed. Fetching latest execution details..."
+            EXEC_NAME=$(gcloud run jobs executions list \
+              --job "${JOB_NAME}" \
+              --region "${REGION}" \
+              --project "${PROJECT}" \
+              --format='value(name)' \
+              --limit=1)
+
+            if [ -n "${EXEC_NAME}" ]; then
+              gcloud run jobs executions describe "${EXEC_NAME}" \
+                --region "${REGION}" \
+                --project "${PROJECT}" || true
+              gcloud run jobs executions logs read "${EXEC_NAME}" \
+                --region "${REGION}" \
+                --project "${PROJECT}" || true
+            fi
+
+            exit ${EXEC_STATUS}
+          fi
 
       - name: Smoke test server QA
         run: |
@@ -203,7 +227,31 @@ jobs:
               --project "${PROJECT}" || true
           fi
 
+          set +e
           gcloud run jobs execute "${JOB_NAME}" --region "${REGION}" --project "${PROJECT}" --wait
+          EXEC_STATUS=$?
+          set -e
+
+          if [ ${EXEC_STATUS} -ne 0 ]; then
+            echo "Migration job failed. Fetching latest execution details..."
+            EXEC_NAME=$(gcloud run jobs executions list \
+              --job "${JOB_NAME}" \
+              --region "${REGION}" \
+              --project "${PROJECT}" \
+              --format='value(name)' \
+              --limit=1)
+
+            if [ -n "${EXEC_NAME}" ]; then
+              gcloud run jobs executions describe "${EXEC_NAME}" \
+                --region "${REGION}" \
+                --project "${PROJECT}" || true
+              gcloud run jobs executions logs read "${EXEC_NAME}" \
+                --region "${REGION}" \
+                --project "${PROJECT}" || true
+            fi
+
+            exit ${EXEC_STATUS}
+          fi
 
       - name: Smoke test server PROD
         run: |
