@@ -235,21 +235,21 @@ jobs:
           fi
           npm --prefix "${CLIENT_DIR}" run build
 
-      # Servir el build del cliente en el runner en el puerto 8080 (para Cypress)
-      - name: Serve client dist on :8080 (background)
+      # Servir el build del cliente en el runner en el puerto 3000 (para Cypress)
+      - name: Serve client dist on :3000 (background)
         run: |
           CLIENT_DIR="client"
           [ -d "TP7/client" ] && CLIENT_DIR="TP7/client"
           npm --prefix "${CLIENT_DIR}" i -g http-server || true
-          npx http-server "${CLIENT_DIR}/dist" -p 8080 & echo $! > "${CLIENT_DIR}/http-server.pid"
+          npx http-server "${CLIENT_DIR}/dist" -p 3000 & echo $! > "${CLIENT_DIR}/http-server.pid"
 
       # Esperar a que el servidor http del cliente esté listo
-      - name: Wait for client on :8080
-        run: npx wait-on http://localhost:8080
+      - name: Wait for client on :3000
+        run: npx wait-on http://localhost:3000
 
       # Ejecutar tests E2E de Cypress contra el cliente servido localmente
       - name: Run Cypress tests (run from client folder)
-        run: npx cypress run --config baseUrl=http://localhost:8080 --spec "cypress/e2e/*.cy.js"
+        run: npx cypress run --config baseUrl=http://localhost:3000 --spec "cypress/e2e/*.cy.js"
         working-directory: TP7/client
 
       # Iniciar backend en background para las pruebas E2E (si es necesario)
