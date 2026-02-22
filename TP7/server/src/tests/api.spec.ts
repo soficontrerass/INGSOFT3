@@ -27,16 +27,23 @@ describe('GET /weatherforecast', () => {
     expect(res.body[0]).toMatchObject({ temperatureC: 18, summary: 'Cloudy' });
   });
 
-  it('returns 500 when fetch throws', async () => {
+  it('returns fallback forecast when fetch throws', async () => {
+    // After fallback strategy: /weatherforecast always returns 200 with fallback data
     (global as any).fetch = jest.fn().mockImplementation(() => { throw new Error('boom'); });
-    const res = await request(app).get('/weatherforecast').expect(500);
-    expect(res.body).toHaveProperty('error', 'internal');
+    const res = await request(app).get('/weatherforecast').expect(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBe(5); // fallback provides 5 synthetic forecasts
+    expect(res.body[0]).toHaveProperty('temperatureC');
+    expect(res.body[0]).toHaveProperty('summary');
   });
 
-  it('returns empty array when API returns empty', async () => {
+  it('returns fallback forecast when API returns empty', async () => {
+    // After fallback strategy: /weatherforecast always returns 200 with fallback data
     (global as any).fetch = jest.fn().mockResolvedValue({ json: async () => [] });
     const res = await request(app).get('/weatherforecast').expect(200);
     expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBe(0);
+    expect(res.body.length).toBe(5); // fallback provides 5 synthetic forecasts
+    expect(res.body[0]).toHaveProperty('temperatureC');
+    expect(res.body[0]).toHaveProperty('summary');
   });
 });
