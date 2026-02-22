@@ -2,8 +2,18 @@
 import express from 'express';
 import { query } from '../db';
 import { getWeatherForecast } from '../services/weather';
+import { randomInt } from 'crypto';
 
 const router = express.Router();
+
+const buildFallbackForecasts = (count = 5) => {
+  const summaries = ['Freezing', 'Bracing', 'Chilly', 'Cool', 'Mild', 'Warm', 'Balmy', 'Hot', 'Sweltering', 'Scorching'];
+  return Array.from({ length: count }).map((_, i) => ({
+    date: new Date(Date.now() + i * 86400000).toISOString(),
+    temperatureC: randomInt(35) - 5,
+    summary: summaries[randomInt(summaries.length)]
+  }));
+};
 
 router.get('/health', async (_req, res) => {
   try {
@@ -81,6 +91,11 @@ router.get('/forecasts', async (req, res) => {
         const rows = result?.rows ?? result;
         normalized = normalizeForecastRows(rows);
         source = 'database';
+      }
+
+      if (normalized.length === 0) {
+        normalized = buildFallbackForecasts();
+        source = 'fallback';
       }
     } else {
       // Si no hay ciudad, devolver de BD (sin filtro)
