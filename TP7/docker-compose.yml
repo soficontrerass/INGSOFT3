@@ -1,17 +1,22 @@
+# DEV Environment - local development
+# Usage: docker compose up -d (uses docker-compose.yml)
+# For PROD: docker compose -f docker-compose.prod.yml up -d
+# For QA: docker compose --env-file .env.qa up -d
+
 services:
   db:
     image: postgres:15
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: miPass
-      POSTGRES_DB: tp7_db
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-miPass}
+      POSTGRES_DB: ${DB_NAME:-tp7_db}
     volumes:
       - db-data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d tp7_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-tp7_db}"]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -25,31 +30,28 @@ services:
       db:
         condition: service_healthy
     environment:
-      NODE_ENV: development
-      PORT: "8080"
-      # URL que usa la app para conectarse a la DB (desde el contenedor)
-      DATABASE_URL: "postgres://postgres:miPass@db:5432/tp7_db"
-      DB_CONN: "postgres://postgres:miPass@db:5432/tp7_db"
-      FORECAST_COUNT: "5"
-      # WeatherAPI key (https://www.weatherapi.com/)
-      WEATHERAPI_KEY: "5ef391d6676f48a6834145903262202"
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${SERVER_PORT:-8080}
+      DATABASE_URL: "postgres://${DB_USER:-postgres}:${DB_PASSWORD:-miPass}@db:5432/${DB_NAME:-tp7_db}"
+      DB_CONN: "postgres://${DB_USER:-postgres}:${DB_PASSWORD:-miPass}@db:5432/${DB_NAME:-tp7_db}"
+      FORECAST_COUNT: ${FORECAST_COUNT:-5}
+      WEATHERAPI_KEY: ${WEATHERAPI_KEY:-5ef391d6676f48a6834145903262202}
     # ejecutar migraciones compiladas, luego seed, y finalmente iniciar servidor
     command: /bin/sh -c "node dist/migrate.js && node dist/seed.js && node dist/index.js"
     ports:
-      - "8081:8080"   # host 8081 -> container 8080
+      - "${API_EXTERNAL_PORT:-8081}:8080"
 
   client:
     build:
       context: ./client
       dockerfile: Dockerfile
       args:
-        # URL que el navegador deberá usar para llamar a la API (host visible desde el navegador)
-        VITE_API_URL: "http://localhost:8081"
+        VITE_API_URL: "http://${CLIENT_HOST:-localhost}:${API_EXTERNAL_PORT:-8081}"
     image: tp7-client:local
     depends_on:
       - server
     ports:
-      - "3000:8080"   # host 3000 -> container 8080 (serve)
+      - "${UI_PORT:-3000}:8080"
 
 volumes:
   db-data:

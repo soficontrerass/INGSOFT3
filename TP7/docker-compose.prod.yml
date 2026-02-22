@@ -1,0 +1,82 @@
+version: '3.8'
+
+# PROD Environment - More restrictive, persistent volumes, explicit resource limits
+# Usage: docker compose -f docker-compose.prod.yml up -d
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-prodSecurePass}
+      POSTGRES_DB: ${DB_NAME:-tp7_prod_db}
+    volumes:
+      - db-prod-data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${DB_PORT:-5433}:5432"  # PROD uses 5433 (different from dev 5432)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-tp7_prod_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    labels:
+      environment: "production"
+      backup: "daily"
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: tp7-server:prod
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${SERVER_PORT:-8080}
+      DATABASE_URL: "postgres://${DB_USER:-postgres}:${DB_PASSWORD:-prodSecurePass}@db:5432/${DB_NAME:-tp7_prod_db}"
+      DB_CONN: "postgres://${DB_USER:-postgres}:${DB_PASSWORD:-prodSecurePass}@db:5432/${DB_NAME:-tp7_prod_db}"
+      FORECAST_COUNT: ${FORECAST_COUNT:-10}
+      WEATHERAPI_KEY: ${WEATHERAPI_KEY}
+      CLIENT_URL: ${CLIENT_URL:-https://tp7-prod.com}
+    command: /bin/sh -c "node dist/migrate.js && node dist/seed.js && node dist/index.js"
+    ports:
+      - "${API_EXTERNAL_PORT:-8082}:8080"  # PROD uses 8082 (different from dev 8081)
+    volumes:
+      - ./server/logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    labels:
+      environment: "production"
+      monitoring: "enabled"
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: "http://${CLIENT_HOST:-localhost}:${API_EXTERNAL_PORT:-8082}"
+    image: tp7-client:prod
+    depends_on:
+      - server
+    restart: always
+    ports:
+      - "${UI_PORT:-3001}:8080"  # PROD uses 3001 (different from dev 3000)
+    labels:
+      environment: "production"
+
+volumes:
+  db-prod-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PROD_DATA_PATH:-./data/prod-db}

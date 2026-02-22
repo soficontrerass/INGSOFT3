@@ -85,4 +85,96 @@ Archivos relevantes:
 - Rutas: `src/routes/api.ts`
 - Evidencias: `./evidencias/*` (adjuntas en el repo)
 
+---
+
+## 7) Gestión de Ambientes (DEV, QA, PROD)
+
+### Arquitectura Multi-Ambiente
+El proyecto utiliza Docker Compose con configuración parametrizada para soportar tres ambientes:
+
+| Ambiente | Config | Puerto DB | Puerto API | Puerto UI | Uso |
+|----------|--------|-----------|-----------|-----------|-----|
+| **DEV** | `docker-compose.yml` | 5432 | 8081 | 3000 | Desarrollo local + tests |
+| **QA** | `docker-compose.yml` + `.env.qa` | 5432 | 8081 | 3000 | Testing en equipo / CI |
+| **PROD** | `docker-compose.prod.yml` + `.env.prod` | 5433 | 8082 | 3001 | Producción remota |
+
+### Uso: DEV (Local)
+```bash
+# Iniciar ambiente de desarrollo
+cd TP7
+docker compose up --build -d
+
+# Verificar estado
+docker compose ps
+docker compose logs -f server
+
+# Detener
+docker compose down
+```
+
+El `.env` de DEV usa las variables por defecto (miPass, puerto 5432, etc.).
+
+### Uso: QA (Testing)
+```bash
+# Copiar configuración QA
+cp .env.qa .env
+
+# Iniciar con env QA (mismo que DEV pero con variables explícitas)
+docker compose up --build -d
+
+# Testing
+npm run test:ci
+npx cypress run
+```
+
+### Uso: PROD (Producción)
+```bash
+# Copiar configuración PROD y actualizar secretos
+cp .env.prod .env
+# ⚠️ IMPORTANTE: Actualizar en .env:
+#   - DB_PASSWORD con contraseña segura
+#   - WEATHERAPI_KEY con clave PROD
+#   - CLIENT_HOST con dominio real
+#   - CLIENT_URL con URL PROD
+
+# Iniciar con compose PROD (puertos y volúmenes diferentes)
+docker compose -f docker-compose.prod.yml up --build -d
+
+# Verificar health
+curl http://localhost:8082/health
+```
+
+### Configuración por Ambiente
+
+**Variables clave** (ver `.env.qa` y `.env.prod`):
+- `DB_USER` / `DB_PASSWORD`: Credenciales PostgreSQL
+- `DB_NAME`: Base de datos (tp7_db, tp7_qa_db, tp7_prod_db)
+- `NODE_ENV`: development, staging, production
+- `WEATHERAPI_KEY`: API key de Weather API (diferente por env)
+- `CLIENT_URL`: URL del cliente (http://localhost vs https://prod.domain)
+- `FORECAST_COUNT`: Cantidad de forecast (5 dev, 10 prod)
+
+### Volúmenes y Persistencia
+
+- **DEV**: `db-data` (volumen anónimo, se limpia con `docker compose down --volumes`)
+- **PROD**: `db-prod-data` (bind mount a `./data/prod-db`, persiste entre reinicios)
+
+### Health Checks
+- **DB**: `pg_isready` cada 5 segundos
+- **Server**: `/health` endpoint cada 10 segundos (PROD)
+- **Client**: Verifica que port 8080 responda (implicit via depends_on)
+
+### Cleanup & Reset
+```bash
+# Limpar DEV (elimina datos)
+docker compose down --volumes
+docker compose up --build -d
+
+# Limpar PROD (preserva volumen)
+docker compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml up -d
+```
+
+---
+
 Fin del documento.
