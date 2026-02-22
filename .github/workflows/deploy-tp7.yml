@@ -125,9 +125,11 @@ jobs:
               gcloud run jobs executions describe "${EXEC_NAME}" \
                 --region "${REGION}" \
                 --project "${PROJECT}" || true
-              gcloud run jobs executions logs read "${EXEC_NAME}" \
-                --region "${REGION}" \
-                --project "${PROJECT}" || true
+              gcloud logging read \
+                "resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"${JOB_NAME}\" AND labels.\"run.googleapis.com/execution_name\"=\"${EXEC_NAME}\"" \
+                --project "${PROJECT}" \
+                --limit=100 \
+                --format='value(textPayload)' || true
             fi
 
             exit ${EXEC_STATUS}
@@ -245,9 +247,11 @@ jobs:
               gcloud run jobs executions describe "${EXEC_NAME}" \
                 --region "${REGION}" \
                 --project "${PROJECT}" || true
-              gcloud run jobs executions logs read "${EXEC_NAME}" \
-                --region "${REGION}" \
-                --project "${PROJECT}" || true
+              gcloud logging read \
+                "resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"${JOB_NAME}\" AND labels.\"run.googleapis.com/execution_name\"=\"${EXEC_NAME}\"" \
+                --project "${PROJECT}" \
+                --limit=100 \
+                --format='value(textPayload)' || true
             fi
 
             exit ${EXEC_STATUS}
