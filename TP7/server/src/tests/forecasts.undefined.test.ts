@@ -16,12 +16,11 @@ describe('Handle undefined DB result for forecasts', () => {
     expect(res).toBeUndefined();
   });
 
-  it('route: GET /api/forecasts returns 200 and empty/null body when query yields undefined', async () => {
+  it('route: GET /api/forecasts returns 200 with empty data when query yields undefined', async () => {
     mockedQuery.mockResolvedValueOnce(undefined);
     const rsp = await request(app).get('/api/forecasts');
     expect(rsp.status).toBe(200);
-    // aceptar body null, empty string o undefined según comportamiento de Express/supertest
-    expect([null, '', undefined]).toContain(rsp.body);
+    expect(rsp.body).toEqual({ data: [], cached: false, source: 'database' });
   });
 });
 // ...existing code...

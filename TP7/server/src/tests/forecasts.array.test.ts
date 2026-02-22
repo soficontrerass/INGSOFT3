@@ -14,7 +14,8 @@ describe('GET /api/forecasts when query returns array directly', () => {
 
     const res = await request(app).get('/api/forecasts');
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body[0]).toMatchObject({ id: 10, value: 99 });
+    expect(res.body).toMatchObject({ cached: false, source: 'database' });
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data[0]).toMatchObject({ temperatureC: 99 });
   });
 });

@@ -19,8 +19,9 @@ describe('basic API smoke tests', () => {
     (query as jest.Mock).mockResolvedValue({ rows: [{ id: 1, created_at: '2025-01-01', value: 42 }] });
     const res = await request(app).get('/api/forecasts');
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body[0].value).toBe(42);
+    expect(res.body).toMatchObject({ cached: false, source: 'database' });
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data[0]).toMatchObject({ temperatureC: 42 });
   });
 });
 // ...existing code...

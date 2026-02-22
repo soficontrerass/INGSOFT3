@@ -9,6 +9,8 @@ describe('GET /api/forecasts with caching', () => {
     jest.clearAllMocks();
   });
 
+  const normalized = [{ date: '2024-01-15T12:00:00Z', temperatureC: 20, summary: '' }];
+
   it('should return forecasts without city parameter', async () => {
     const mockForecasts = [
       { id: 1, created_at: '2024-01-15T12:00:00Z', value: { temp: 20 } }
@@ -20,7 +22,7 @@ describe('GET /api/forecasts with caching', () => {
     const res = await request(app).get('/api/forecasts');
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual(mockForecasts);
+    expect(res.body).toEqual({ data: normalized, cached: false, source: 'database' });
     // GET /forecasts without params has no SQL parameters
     expect(db.query).toHaveBeenCalledWith(
       expect.stringContaining('SELECT id, created_at, value FROM forecasts')
@@ -29,7 +31,7 @@ describe('GET /api/forecasts with caching', () => {
 
   it('should hit cache if useCache=true and city is provided with valid cache entry', async () => {
     const cachedForecast = {
-      forecast_data: { temp: 20, condition: 'sunny' },
+      forecast_data: [{ date: '2024-01-15T12:00:00Z', temperatureC: 20, summary: 'sunny' }],
       cached_at: '2024-01-15T12:00:00Z'
     };
     (db.query as jest.Mock).mockResolvedValueOnce({
@@ -42,6 +44,7 @@ describe('GET /api/forecasts with caching', () => {
     expect(res.body).toEqual({
       data: cachedForecast.forecast_data,
       cached: true,
+      source: 'cache',
       cachedAt: cachedForecast.cached_at
     });
     // Should only call cache check, not insert searches/cache
@@ -61,7 +64,7 @@ describe('GET /api/forecasts with caching', () => {
     const res = await request(app).get('/api/forecasts?city=Madrid&useCache=true');
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual(mockForecasts);
+    expect(res.body).toEqual({ data: normalized, cached: false, source: 'database' });
     // Should have tried cache, then forecast, then search, then cache insert
     expect(db.query).toHaveBeenCalledTimes(4);
   });
@@ -77,9 +80,9 @@ describe('GET /api/forecasts with caching', () => {
     const res = await request(app).get('/api/forecasts?useCache=true');
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual(mockForecasts);
+    expect(res.body).toEqual({ data: normalized, cached: false, source: 'database' });
     // Should skip cache check if no city
-    expect(res.body[0].value).toBeDefined(); // raw forecast, not cached format
+    expect(db.query).toHaveBeenCalledTimes(1);
   });
 
   it('should handle database errors gracefully', async () => {
@@ -104,7 +107,7 @@ describe('GET /api/forecasts with caching', () => {
     const res = await request(app).get('/api/forecasts?city=Madrid&useCache=true');
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual(mockForecasts); // still returns forecast despite cache fail
+    expect(res.body).toEqual({ data: normalized, cached: false, source: 'database' }); // still returns forecast despite cache fail
   });
 
   it('should update cache expiry on cache insert (conflict resolution)', async () => {

@@ -23,11 +23,16 @@ router.get('/forecasts', async (req, res) => {
     const useCache = req.query.useCache === 'true';
 
     // Helper: normalizar filas raw a formato consistente
-    const normalizeForecastRows = (rows: any[]): any[] => {
-      return rows.map((row: any) => {
+    const normalizeForecastRows = (rows: any): any[] => {
+      const safeRows = Array.isArray(rows) ? rows : [];
+      return safeRows.map((row: any) => {
         const val = row?.value ?? row;
         const date = val?.date ?? row?.date ?? row?.created_at ?? new Date().toISOString();
-        const temperatureC = val?.temperatureC ?? val?.temp ?? val?.temperature ?? null;
+        const temperatureC =
+          val?.temperatureC ??
+          val?.temp ??
+          val?.temperature ??
+          (typeof val === 'number' ? val : null);
         const summary = val?.summary ?? val?.s ?? val?.desc ?? '';
         return { date, temperatureC, summary };
       });

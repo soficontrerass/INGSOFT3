@@ -51,6 +51,8 @@ describe('POST /api/searches (via /api/forecasts)', () => {
     jest.clearAllMocks();
   });
 
+  const normalized = [{ date: '2024-01-15T12:00:00Z', temperatureC: 20, summary: '' }];
+
   it('should record a search when city query parameter is provided', async () => {
     const mockForecasts = [{ id: 1, created_at: '2024-01-15T12:00:00Z', value: { temp: 20 } }];
     (db.query as jest.Mock)
@@ -60,7 +62,7 @@ describe('POST /api/searches (via /api/forecasts)', () => {
 
     const res = await request(app).get('/api/forecasts?city=Madrid');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual(mockForecasts);
+    expect(res.body).toEqual({ data: normalized, cached: false, source: 'database' });
     // Should have called insert into searches
     expect(db.query).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO searches'),
@@ -77,6 +79,6 @@ describe('POST /api/searches (via /api/forecasts)', () => {
 
     const res = await request(app).get('/api/forecasts?city=Madrid');
     expect(res.status).toBe(200); // should still succeed
-    expect(res.body).toEqual(mockForecasts);
+    expect(res.body).toEqual({ data: normalized, cached: false, source: 'database' });
   });
 });

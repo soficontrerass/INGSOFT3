@@ -24,8 +24,9 @@ describe('API /api/forecasts - errores y edge cases', () => {
     mockedQuery.mockResolvedValueOnce({ rows: [] });
     const res = await request(app).get('/api/forecasts');
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBe(0);
+    expect(res.body).toMatchObject({ cached: false, source: 'database' });
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data.length).toBe(0);
   });
 
   it('devuelve 200 y estructura esperada cuando hay filas', async () => {
@@ -34,7 +35,8 @@ describe('API /api/forecasts - errores y edge cases', () => {
     });
     const res = await request(app).get('/api/forecasts');
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body[0]).toMatchObject({ id: 1, value: 42 });
+    expect(res.body).toMatchObject({ cached: false, source: 'database' });
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data[0]).toMatchObject({ temperatureC: 42 });
   });
 });

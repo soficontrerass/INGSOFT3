@@ -15,8 +15,9 @@ describe('/api routes (isolated db mocks)', () => {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const app = require('../app').default;
       const res = await request(app).get('/api/forecasts').expect(200);
-      expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body[0]).toHaveProperty('value');
+      expect(res.body).toMatchObject({ cached: false, source: 'database' });
+      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.data[0]).toHaveProperty('temperatureC');
     });
   });
 

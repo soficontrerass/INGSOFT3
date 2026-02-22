@@ -30,9 +30,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">75% </span>
+                <span class="strong">89.28% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>21/28</span>
+                <span class='fraction'>25/28</span>
             </div>
         
             
@@ -131,23 +131,23 @@
 <a name='L66'></a><a href='#L66'>66</a>
 <a name='L67'></a><a href='#L67'>67</a>
 <a name='L68'></a><a href='#L68'>68</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -159,7 +159,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -176,8 +176,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -191,7 +191,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-yes">7x</span>
@@ -214,7 +214,7 @@ if (fs.existsSync(CLIENT_DIST)) {
   }
 &nbsp;
   // SPA fallback for client builds (only if app.get exists)
-  <span class="missing-if-branch" title="else path not taken" >E</span>if (typeof (app as any).get === 'function') {
+  if (typeof (app as any).get === 'function') {
     (app as any).get('*', (req: any, res: any, next: any) =&gt; {
       <span class="missing-if-branch" title="else path not taken" >E</span>if (!req.path.startsWith('/api') &amp;&amp; !req.path.includes('.')) {
         return res.sendFile(path.join(CLIENT_DIST, 'index.html'));
@@ -226,7 +226,7 @@ if (fs.existsSync(CLIENT_DIST)) {
 &nbsp;
 // Always register root handler (tests expect app.get('/') to be called)
 // Production: redirect to CLIENT_URL; Non-production: send simple message
-<span class="missing-if-branch" title="else path not taken" >E</span>if (typeof (app as any).get === 'function') {
+if (typeof (app as any).get === 'function') {
   if (process.env.NODE_ENV === 'production') {
     (app as any).get('/', (_req: any, res: any) =&gt; {
       return res.redirect(CLIENT_URL);
@@ -243,7 +243,7 @@ if (fs.existsSync(CLIENT_DIST)) {
 }
 &nbsp;
 // Add /weatherforecast route only if app.get exists (keeps tests deterministic)
-<span class="missing-if-branch" title="else path not taken" >E</span>if (typeof (app as any).get === 'function') {
+if (typeof (app as any).get === 'function') {
   (app as any).get('/weatherforecast', <span class="fstat-no" title="function not covered" >(_</span>req: any, res: any) =&gt; {
     const count = <span class="cstat-no" title="statement not covered" >Number(process.env.FORECAST_COUNT || 5);</span>
     const summaries = <span class="cstat-no" title="statement not covered" >['Freezing','Bracing','Chilly','Cool','Mild','Warm','Balmy','Hot','Sweltering','Scorching'];</span>
@@ -258,7 +258,7 @@ if (fs.existsSync(CLIENT_DIST)) {
 }
 &nbsp;
 // Start server only if app.listen exists (tests mock app without listen)
-<span class="missing-if-branch" title="else path not taken" >E</span>if (typeof (app as any).listen === 'function') {
+if (typeof (app as any).listen === 'function') {
   const port = process.env.PORT ? Number(process.env.PORT) : 8080;
   (app as any).listen(port, () =&gt; {
     console.log(`Server listening on port ${port} (FORECAST_COUNT=${process.env.FORECAST_COUNT || '5'})`);
@@ -271,7 +271,7 @@ if (fs.existsSync(CLIENT_DIST)) {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-02-20T15:46:29.465Z
+                at 2026-02-22T15:27:56.628Z
             </div>
         <script src="../prettify.js"></script>
         <script>
