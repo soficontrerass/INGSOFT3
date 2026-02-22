@@ -92,6 +92,7 @@ jobs:
               --image "${IMAGE}" \
               --region "${REGION}" \
               --command node --args dist/migrate.js \
+              --max-retries 0 \
               --service-account "${RUNTIME_SA}" \
               --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
               --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_QA }}",DB_NAME="${{ secrets.DB_NAME7_QA }}" \
@@ -101,6 +102,7 @@ jobs:
               --image "${IMAGE}" \
               --region "${REGION}" \
               --command node --args dist/migrate.js \
+              --max-retries 0 \
               --service-account "${RUNTIME_SA}" \
               --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
               --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_QA }}",DB_NAME="${{ secrets.DB_NAME7_QA }}" \
@@ -214,6 +216,7 @@ jobs:
               --image "${IMAGE}" \
               --region "${REGION}" \
               --command node --args dist/migrate.js \
+              --max-retries 0 \
               --service-account "${RUNTIME_SA}" \
               --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
               --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_PROD }}",DB_NAME="${{ secrets.DB_NAME7_PROD }}" \
@@ -223,6 +226,7 @@ jobs:
               --image "${IMAGE}" \
               --region "${REGION}" \
               --command node --args dist/migrate.js \
+              --max-retries 0 \
               --service-account "${RUNTIME_SA}" \
               --set-cloudsql-instances "${INSTANCE_CONN_NAME}" \
               --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_PROD }}",DB_NAME="${{ secrets.DB_NAME7_PROD }}" \
