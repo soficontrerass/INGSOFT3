@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">84.37% </span>
+                <span class="strong">90% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>27/32</span>
+                <span class='fraction'>27/30</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">85.71% </span>
+                <span class="strong">81.25% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>12/14</span>
+                <span class='fraction'>13/16</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">77.77% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>7/9</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">87.09% </span>
+                <span class="strong">93.1% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>27/31</span>
+                <span class='fraction'>27/29</span>
             </div>
         
             
@@ -182,8 +182,7 @@
 <a name='L117'></a><a href='#L117'>117</a>
 <a name='L118'></a><a href='#L118'>118</a>
 <a name='L119'></a><a href='#L119'>119</a>
-<a name='L120'></a><a href='#L120'>120</a>
-<a name='L121'></a><a href='#L121'>121</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L120'></a><a href='#L120'>120</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -279,6 +278,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -292,8 +292,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -325,7 +323,7 @@ export const RecentSearches: React.FC&lt;RecentSearchesProps&gt; = ({ onSearchSe
       const res = await fetch(`${API}/api/searches`);
       if (res.ok) {
         const data = await res.json();
-        setSearches(data);
+        setSearches(Array.isArray(data) ? data : <span class="branch-1 cbranch-no" title="branch not covered" >[])</span>;
       }
     } catch (err) {
 <span class="cstat-no" title="statement not covered" >      console.error('Failed to load recent searches:', err);</span>
@@ -397,10 +395,12 @@ export const RecentSearches: React.FC&lt;RecentSearchesProps&gt; = ({ onSearchSe
             Recent Searches
           &lt;/h4&gt;
           {searches.map((s) =&gt; (
-            &lt;div
+            &lt;button
+              type="button"
               key={s.city}
               onClick={() =&gt; onSearchSelect(s.city)}
               style={{
+                width: '100%',
                 padding: '6px 8px',
                 cursor: 'pointer',
                 backgroundColor: 'white',
@@ -408,15 +408,12 @@ export const RecentSearches: React.FC&lt;RecentSearchesProps&gt; = ({ onSearchSe
                 borderRadius: '3px',
                 fontSize: '13px',
                 userSelect: 'none',
-                ':hover': {
-                  backgroundColor: '#f0f0f0'
-                }
+                border: 'none',
+                textAlign: 'left'
               }}
-              onMouseOver={<span class="fstat-no" title="function not covered" >(e</span>) =&gt; (<span class="cstat-no" title="statement not covered" >e.currentTarget.style.backgroundColor = '#f0f0f0')}</span>
-              onMouseOut={<span class="fstat-no" title="function not covered" >(e</span>) =&gt; (<span class="cstat-no" title="statement not covered" >e.currentTarget.style.backgroundColor = 'white')}</span>
             &gt;
               📍 {s.city}
-            &lt;/div&gt;
+            &lt;/button&gt;
           ))}
         &lt;/div&gt;
       )}
@@ -430,7 +427,7 @@ export const RecentSearches: React.FC&lt;RecentSearchesProps&gt; = ({ onSearchSe
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-02-22T15:37:15.383Z
+                at 2026-02-22T16:00:56.338Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

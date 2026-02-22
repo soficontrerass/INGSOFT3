@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">78.94% </span>
+                <span class="strong">88.23% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>30/38</span>
+                <span class='fraction'>30/34</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">66.66% </span>
+                <span class="strong">65.21% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>14/21</span>
+                <span class='fraction'>15/23</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">81.81% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>9/11</span>
+                <span class='fraction'>9/9</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">80.55% </span>
+                <span class="strong">90.62% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>29/36</span>
+                <span class='fraction'>29/32</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -205,8 +205,7 @@
 <a name='L140'></a><a href='#L140'>140</a>
 <a name='L141'></a><a href='#L141'>141</a>
 <a name='L142'></a><a href='#L142'>142</a>
-<a name='L143'></a><a href='#L143'>143</a>
-<a name='L144'></a><a href='#L144'>144</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L143'></a><a href='#L143'>143</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -305,16 +304,15 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -379,7 +377,7 @@ export const FavoritesPage: React.FC&lt;FavoritesPageProps&gt; = ({ onCitySelect
       const res = await fetch(`${API}/api/favorites`);
       if (res.ok) {
         const data = await res.json();
-        setFavorites(data);
+        setFavorites(Array.isArray(data) ? data : <span class="branch-1 cbranch-no" title="branch not covered" >[])</span>;
       } else {
         setError('Failed to load favorites');
       }
@@ -447,26 +445,25 @@ export const FavoritesPage: React.FC&lt;FavoritesPageProps&gt; = ({ onCitySelect
                 cursor: 'pointer',
                 transition: 'transform 0.2s, box-shadow 0.2s'
               }}
-              onMouseOver={<span class="fstat-no" title="function not covered" >(e</span>) =&gt; {
-<span class="cstat-no" title="statement not covered" >                e.currentTarget.style.transform = 'translateY(-2px)';</span>
-<span class="cstat-no" title="statement not covered" >                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)';</span>
-              }}
-              onMouseOut={<span class="fstat-no" title="function not covered" >(e</span>) =&gt; {
-<span class="cstat-no" title="statement not covered" >                e.currentTarget.style.transform = 'translateY(0)';</span>
-<span class="cstat-no" title="statement not covered" >                e.currentTarget.style.boxShadow = 'none';</span>
-              }}
             &gt;
-              &lt;div
+              &lt;button
+                type="button"
                 onClick={() =&gt; handleSelect(fav.city)}
                 style={{
+                  width: '100%',
+                  textAlign: 'left',
                   fontSize: '18px',
                   fontWeight: 'bold',
                   marginBottom: '8px',
-                  color: '#007bff'
+                  color: '#007bff',
+                  border: 'none',
+                  background: 'transparent',
+                  padding: 0,
+                  cursor: 'pointer'
                 }}
               &gt;
                 📍 {fav.city}
-              &lt;/div&gt;
+              &lt;/button&gt;
               &lt;div style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}&gt;
                 Added: {new Date(fav.created_at).toLocaleDateString()}
               &lt;/div&gt;
@@ -499,7 +496,7 @@ export const FavoritesPage: React.FC&lt;FavoritesPageProps&gt; = ({ onCitySelect
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-02-22T15:37:15.383Z
+                at 2026-02-22T16:00:56.338Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

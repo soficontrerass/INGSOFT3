@@ -92,10 +92,12 @@ export const RecentSearches: React.FC<RecentSearchesProps> = ({ onSearchSelect, 
             Recent Searches
           </h4>
           {searches.map((s) => (
-            <div
+            <button
+              type="button"
               key={s.city}
               onClick={() => onSearchSelect(s.city)}
               style={{
+                width: '100%',
                 padding: '6px 8px',
                 cursor: 'pointer',
                 backgroundColor: 'white',
@@ -103,15 +105,12 @@ export const RecentSearches: React.FC<RecentSearchesProps> = ({ onSearchSelect, 
                 borderRadius: '3px',
                 fontSize: '13px',
                 userSelect: 'none',
-                ':hover': {
-                  backgroundColor: '#f0f0f0'
-                }
+                border: 'none',
+                textAlign: 'left'
               }}
-              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f0f0f0')}
-              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'white')}
             >
               📍 {s.city}
-            </div>
+            </button>
           ))}
         </div>
       )}

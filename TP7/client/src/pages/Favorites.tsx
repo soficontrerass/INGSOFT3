@@ -96,26 +96,25 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({ onCitySelect, onFa
                 cursor: 'pointer',
                 transition: 'transform 0.2s, box-shadow 0.2s'
               }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
             >
-              <div
+              <button
+                type="button"
                 onClick={() => handleSelect(fav.city)}
                 style={{
+                  width: '100%',
+                  textAlign: 'left',
                   fontSize: '18px',
                   fontWeight: 'bold',
                   marginBottom: '8px',
-                  color: '#007bff'
+                  color: '#007bff',
+                  border: 'none',
+                  background: 'transparent',
+                  padding: 0,
+                  cursor: 'pointer'
                 }}
               >
                 📍 {fav.city}
-              </div>
+              </button>
               <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>
                 Added: {new Date(fav.created_at).toLocaleDateString()}
               </div>
