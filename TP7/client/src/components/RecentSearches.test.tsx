@@ -12,7 +12,12 @@ describe('RecentSearches', () => {
     vi.resetAllMocks();
   });
 
-  it('should render search input and button', () => {
+  it('should render search input and button', async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => []
+    });
+
     const mockOnSearchSelect = vi.fn();
     const mockOnSearch = vi.fn();
 
@@ -22,6 +27,9 @@ describe('RecentSearches', () => {
 
     expect(screen.getByPlaceholderText('Search for a city...')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalled();
+    });
   });
 
   it('should load and display recent searches', async () => {
@@ -69,6 +77,10 @@ describe('RecentSearches', () => {
 
   it('should submit new search via form', async () => {
     (global.fetch as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => []
+      })
       .mockResolvedValueOnce({
         ok: true,
         json: async () => []

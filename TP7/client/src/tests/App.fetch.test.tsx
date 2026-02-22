@@ -18,13 +18,18 @@ describe('App fetch flows', () => {
 
   it('shows loading then renders fetched items', async () => {
     const mockData = [{ date: '2025-12-01T00:00:00Z', temperatureC: 20, summary: 'Sunny' }];
-    mockedFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => []
-    });
-    mockedFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockData
+    mockedFetch.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/api/favorites')) {
+        return { ok: true, json: async () => [] } as Response;
+      }
+      if (url.includes('/api/searches')) {
+        return { ok: true, json: async () => [] } as Response;
+      }
+      if (url.includes('/weatherforecast')) {
+        return { ok: true, json: async () => mockData } as Response;
+      }
+      return { ok: true, json: async () => [] } as Response;
     });
 
     render(<App />);
@@ -38,22 +43,38 @@ describe('App fetch flows', () => {
   });
 
   it('shows error when response not ok', async () => {
-    mockedFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => []
+    mockedFetch.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/api/favorites')) {
+        return { ok: true, json: async () => [] } as Response;
+      }
+      if (url.includes('/api/searches')) {
+        return { ok: true, json: async () => [] } as Response;
+      }
+      if (url.includes('/weatherforecast')) {
+        return { ok: false, status: 500, json: async () => ({}) } as Response;
+      }
+      return { ok: true, json: async () => [] } as Response;
     });
-    mockedFetch.mockResolvedValueOnce({ ok: false, status: 500 });
     render(<App />);
     await waitFor(() => expect(screen.getByText(/Error:/i)).toBeInTheDocument());
     expect(screen.getByText(/HTTP 500/)).toBeInTheDocument();
   });
 
   it('shows error when fetch rejects', async () => {
-    mockedFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => []
+    mockedFetch.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/api/favorites')) {
+        return { ok: true, json: async () => [] } as Response;
+      }
+      if (url.includes('/api/searches')) {
+        return { ok: true, json: async () => [] } as Response;
+      }
+      if (url.includes('/weatherforecast')) {
+        throw new Error('network');
+      }
+      return { ok: true, json: async () => [] } as Response;
     });
-    mockedFetch.mockRejectedValueOnce(new Error('network'));
     render(<App />);
     await waitFor(() => expect(screen.getByText(/Error:/i)).toBeInTheDocument());
     expect(screen.getByText(/network/)).toBeInTheDocument();

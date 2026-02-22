@@ -1,5 +1,4 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { FavoritesPage } from '../pages/Favorites';
 
@@ -12,7 +11,7 @@ describe('FavoritesPage', () => {
     vi.resetAllMocks();
   });
 
-  it('should render favorites title', () => {
+  it('should render favorites title', async () => {
     (global.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => []
@@ -22,6 +21,9 @@ describe('FavoritesPage', () => {
     render(<FavoritesPage onCitySelect={mockOnCitySelect} />);
 
     expect(screen.getByText('⭐ My Favorite Cities')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalled();
+    });
   });
 
   it('should load and display favorites', async () => {
