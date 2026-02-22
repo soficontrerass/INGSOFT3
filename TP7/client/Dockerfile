@@ -8,8 +8,10 @@ ENV VITE_API_URL=${VITE_API_URL:-http://localhost:8080}
 
 COPY package*.json ./
 RUN npm ci || (rm -f package-lock.json && npm install --no-audit --no-fund)
+RUN chmod -R u+x node_modules/.bin
 RUN npm rebuild || true
 RUN npm install @rollup/rollup-linux-x64-gnu --no-save --no-audit || true
+RUN chmod -R u+x node_modules/.bin
 
 COPY . .
 # VITE_API_URL estará disponible durante npm run build
