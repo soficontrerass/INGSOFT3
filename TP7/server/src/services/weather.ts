@@ -16,12 +16,25 @@ export async function getWeatherForecast(city: string): Promise<WeatherForecast[
     throw new Error('WEATHERAPI_KEY not configured');
   }
 
-  try {
-    console.log(`[WEATHER] Fetching forecast for ${city}...`);
+  const normalizedCity = city?.trim();
+  if (!normalizedCity) {
+    throw new Error('city is required');
+  }
+  if (!/^[\p{L}\s._-]{1,80}$/u.test(normalizedCity)) {
+    throw new Error('invalid city format');
+  }
 
-    const url = `${WEATHERAPI_URL}/forecast.json?key=${encodeURIComponent(WEATHERAPI_KEY)}&q=${encodeURIComponent(city)}&days=5&aqi=no&alerts=no`;
+  try {
+    console.log(`[WEATHER] Fetching forecast for ${normalizedCity}...`);
+
+    const url = new URL(`${WEATHERAPI_URL}/forecast.json`);
+    url.searchParams.set('key', WEATHERAPI_KEY);
+    url.searchParams.set('q', normalizedCity);
+    url.searchParams.set('days', '5');
+    url.searchParams.set('aqi', 'no');
+    url.searchParams.set('alerts', 'no');
     
-    const response = await fetch(url);
+    const response = await fetch(url.toString());
     if (!response.ok) {
       throw new Error(`WeatherAPI error: ${response.status} ${response.statusText}`);
     }
@@ -34,11 +47,12 @@ export async function getWeatherForecast(city: string): Promise<WeatherForecast[
       summary: capitalizeFirst(day?.day?.condition?.text ?? 'Unknown')
     }));
 
-    console.log(`[WEATHER] Got ${forecasts.length} forecasts for ${city}`);
+    console.log(`[WEATHER] Got ${forecasts.length} forecasts for ${normalizedCity}`);
     return forecasts;
   } catch (err: any) {
-    console.error(`[WEATHER] Error fetching weather for ${city}:`, err.message);
-    throw err;
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[WEATHER] Error fetching weather for ${normalizedCity}:`, message);
+    throw err instanceof Error ? err : new Error(message);
   }
 }
 

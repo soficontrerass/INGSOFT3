@@ -1,6 +1,6 @@
 import { query, close } from './db';
 
-const seedForecastsData = async () => {
+export const seedForecastsData = async (): Promise<void> => {
   try {
     console.log('🌱 Iniciando seed de forecasts por ciudad...');
 
@@ -71,10 +71,13 @@ const seedForecastsData = async () => {
     console.log('✅ Seed completado: 15 forecasts insertados (3 por cada ciudad)');
   } catch (err) {
     console.error('❌ Error en seed:', err);
-    process.exit(1);
+    process.exitCode = 1;
+    throw err;
   } finally {
     await close();
   }
 };
 
-seedForecastsData();
+if (require.main === module) {
+  seedForecastsData().catch(() => {});
+}

@@ -52,7 +52,8 @@ export default function App() {
       const res = await fetch(`${API}/api/favorites`);
       if (res.ok) {
         const data = await res.json();
-        setFavorites(data.map((f: any) => f.city));
+        const list = Array.isArray(data) ? data : [];
+        setFavorites(list.map((f: any) => f?.city).filter(Boolean));
       }
     } catch (err) {
       console.error('Failed to load favorites:', err);

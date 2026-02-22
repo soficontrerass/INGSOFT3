@@ -28,7 +28,7 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({ onCitySelect, onFa
       const res = await fetch(`${API}/api/favorites`);
       if (res.ok) {
         const data = await res.json();
-        setFavorites(data);
+        setFavorites(Array.isArray(data) ? data : []);
       } else {
         setError('Failed to load favorites');
       }

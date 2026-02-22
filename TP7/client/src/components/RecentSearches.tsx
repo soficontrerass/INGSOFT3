@@ -20,7 +20,7 @@ export const RecentSearches: React.FC<RecentSearchesProps> = ({ onSearchSelect, 
       const res = await fetch(`${API}/api/searches`);
       if (res.ok) {
         const data = await res.json();
-        setSearches(data);
+        setSearches(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error('Failed to load recent searches:', err);
