@@ -148,7 +148,7 @@ jobs:
           SERVER_URL=$(gcloud run services describe tp7-server-qa --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')
           CLIENT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-client:${SHA}-qa"
           gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
-          docker build --build-arg VITE_API_URL="${SERVER_URL}" -t "${CLIENT_IMAGE}" TP7/client
+          docker build --no-cache --build-arg VITE_API_URL="${SERVER_URL}" -t "${CLIENT_IMAGE}" TP7/client
           docker push "${CLIENT_IMAGE}"
 
       - name: Deploy TP7 client QA
@@ -272,7 +272,7 @@ jobs:
           SERVER_URL=$(gcloud run services describe tp7-server --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')
           CLIENT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-client:${SHA}-prod"
           gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
-          docker build --build-arg VITE_API_URL="${SERVER_URL}" -t "${CLIENT_IMAGE}" TP7/client
+          docker build --no-cache --build-arg VITE_API_URL="${SERVER_URL}" -t "${CLIENT_IMAGE}" TP7/client
           docker push "${CLIENT_IMAGE}"
 
       - name: Deploy TP7 client PROD
