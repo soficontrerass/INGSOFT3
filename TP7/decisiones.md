@@ -65,11 +65,79 @@
 - Evitar construir URLs desde datos del request; usar configuración interna o invocar servicios directamente.
 - Mantener CI reaccionando a Quality Gate, pero balancear entre falsos positivos y correcciones reales.
 
---- 
-Registro de acciones realizadas (resumen)
+---
+
+## 9. Deploy QA/PROD en GCP Cloud Run (Strategy & Implementation)
+
+### Arquitectura General
+
+**Objetivo**: Automatizar deploy de TP7 (server + client) a dos ambientes (QA automático, PROD manual) en GCP Cloud Run, con validaciones automáticas (smoke tests).
+
+**Componentes involucrados**:
+- **GCP Cloud Run**: Servicio managed para server y client.
+- **GCP Cloud SQL**: PostgreSQL 15 (QA y PROD).
+- **GCP Artifact Registry**: Repo privado de imágenes Docker (`tp7-repo`).
+- **Service Accounts**: `tp7-sa-qa` y `tp7-sa-prod` con roles específicos.
+- **GitHub Actions**: Workflow `deploy-tp7.yml` que orquesta build, deploy, migraciones, smoke tests.
+- **GitHub Secrets**: Credenciales y config por ambiente (`qa7`, `prod7`).
+
+### Workflow: `.github/workflows/deploy-tp7.yml`
+
+#### **Job 1: build-server**
+- **Environment**: qa7 (usa GCP_SA_KEY7_QA)
+- Pasos:
+  1. Checkout código.
+  2. Auth a GCP.
+  3. Enable APIs.
+  4. Build Docker image (TP7/server) → push a Artifact Registry.
+
+#### **Job 2: deploy-qa**
+- **Depends on**: build-server
+- **Environment**: qa7
+- Pasos:
+  1. Deploy server a Cloud Run (`tp7-server-qa`) con Cloud SQL connection.
+  2. Run migrations (Cloud Run Job `tp7-migrate-qa`): ejecuta `node dist/migrate.js` para CREATE TABLE.
+  3. **Smoke test server**: `curl --fail --retry 5 $URL/health` → valida 200 + DB OK.
+  4. Build client image con `VITE_API_URL=<server-qa-url>`.
+  5. Deploy client a Cloud Run (`tp7-client-qa`).
+  6. **Smoke test client**: `curl --fail --retry 5 $URL` → valida 200 + HTML.
+
+#### **Job 3: deploy-prod**
+- **Depends on**: deploy-qa
+- **Environment**: prod7 (manual approval en GitHub)
+- Pasos: Idénticos a deploy-qa, pero con secrets PROD, SAs PROD, nombres sin "-qa".
+
+### Setup de Infraestructura GCP
+
+1. **APIs**: `gcloud services enable run.googleapis.com sqladmin.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com`
+2. **Artifact Registry**: `gcloud artifacts repositories create tp7-repo --location=us-central1 --repository-format=docker`
+3. **Cloud SQL QA/PROD**: Instancias PostgreSQL 15, db-f1-micro, with databases `tp7_qa` / `tp7_prod`.
+4. **Service Accounts**: `tp7-sa-qa`, `tp7-sa-prod` con roles: `run.admin`, `cloudsql.client`, `artifactregistry.writer`, `iam.serviceAccountUser`, `logging.viewer`.
+5. **GitHub Secrets**: Repository + Environment (qa7/prod7) secrets con credenciales, DB names, connection strings.
+
+### Smoke Tests ✅
+
+**Server Health (QA y PROD)**:
+```bash
+curl --fail --retry 5 --retry-delay 3 "$URL/health"
+```
+Valida que Cloud Run levantó el container y DB respondió 200.
+
+**Client Health (QA y PROD)**:
+```bash
+curl --fail --retry 5 --retry-delay 3 "$URL"
+```
+Valida que cliente estático (dist) está sirviendo y responde 200.
+
+**Status**: ✅ Ambos jobs completaron smoke tests exitosamente.
+
+---\nRegistro de acciones realizadas (resumen)
 - Tests actualizados para aislar módulos y mockear db antes del require.
 - Propuesta/patch para reemplazar Math.random por crypto.randomInt.
-- Propuesta/patch para eliminar req.get('host') y usar INTERNAL_HOST/PORT o llamar al servicio interno.
-- Documentación y evidencias en `./evidencias` para auditoría.
+- Propuesta/patch para eliminar req.get('host') y usar INTERNAL_HOST/PORT.
+- GCP infrastructure configurada (Cloud Run, Cloud SQL, Artifact Registry, Service Accounts).
+- GitHub workflow `deploy-tp7.yml` con 3 jobs (build-server, deploy-qa, deploy-prod).
+- Smoke tests en QA y PROD validando server health + client load.
+- Documentación en `decisiones.md` y evidencias en `./evidencias`.
 
 Fin.
