@@ -19,7 +19,7 @@ const buildFallbackForecasts = (count = 5) => {
 
 // DEBUG: logear todas las requests (temporal)
 app.use((req, _res, next) => {
-  console.log('[REQ]', req.method, req.path, 'cwd=', process.cwd());
+  console.log('[REQ] incoming request');
   next();
 });
 

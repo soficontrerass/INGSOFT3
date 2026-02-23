@@ -57,7 +57,7 @@ router.get('/forecasts', async (req, res) => {
       
       if (cacheResult?.rows && cacheResult.rows.length > 0) {
         const cached = cacheResult.rows[0];
-        console.log(`[CACHE HIT] City: ${city}`);
+        console.log('[CACHE HIT] city forecast served from cache');
         // cached.forecast_data es ya un array (o debería serlo), normalizarlo por si acaso
         const data = Array.isArray(cached.forecast_data) ? cached.forecast_data : [cached.forecast_data];
         return res.json({
@@ -76,14 +76,14 @@ router.get('/forecasts', async (req, res) => {
     if (city) {
       try {
         // Intentar consultar API externa de clima
-        console.log(`[API] Fetching weather from WeatherAPI for: ${city}`);
+        console.log('[API] Fetching weather from WeatherAPI');
         const weatherData = await getWeatherForecast(city);
         normalized = weatherData;
         source = 'weatherapi';
         console.log(`[API] Got ${normalized.length} forecasts from WeatherAPI`);
       } catch (weatherErr: any) {
         // Fallback: si API externa falla, usar BD
-        console.warn(`[API] WeatherAPI failed (${weatherErr.message}), falling back to DB`);
+        console.warn('[API] WeatherAPI failed, falling back to DB');
         const result: any = await query(
           'SELECT id, created_at, value FROM forecasts WHERE city = $1 ORDER BY id DESC LIMIT 5',
           [city]
