@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">27.77% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>18/18</span>
+                <span class='fraction'>5/18</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">91.66% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>11/12</span>
+                <span class='fraction'>0/12</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>3/3</span>
+                <span class='fraction'>0/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">29.41% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>17/17</span>
+                <span class='fraction'>5/17</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -101,40 +101,40 @@
 <a name='L36'></a><a href='#L36'>36</a>
 <a name='L37'></a><a href='#L37'>37</a>
 <a name='L38'></a><a href='#L38'>38</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">15x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">10x</span>
-<span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">15x</span>
-<span class="cline-any cline-yes">10x</span>
-<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">15x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// ...existing code...
@@ -144,34 +144,34 @@ const connectionString = process.env.DATABASE_URL;
 &nbsp;
 let pool: Pool | null = null;
 &nbsp;
-function getPool(): Pool {
-  if (pool) return pool;
-  if (connectionString) {
-    pool = new Pool({ connectionString });
-  } else if (process.env.DB_NAME || process.env.DB_HOST) {
-    pool = new Pool({
+function <span class="fstat-no" title="function not covered" >getPool(</span>): Pool {
+<span class="cstat-no" title="statement not covered" >  if (pool) <span class="cstat-no" title="statement not covered" >return pool;</span></span>
+<span class="cstat-no" title="statement not covered" >  if (connectionString) {</span>
+<span class="cstat-no" title="statement not covered" >    pool = new Pool({ connectionString });</span>
+  } else <span class="cstat-no" title="statement not covered" >if (process.env.DB_NAME || process.env.DB_HOST) {</span>
+<span class="cstat-no" title="statement not covered" >    pool = new Pool({</span>
       user: process.env.DB_USER,
       password: process.env.DB_PASS,
       database: process.env.DB_NAME,
       host: process.env.DB_HOST,
-      port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : <span class="branch-1 cbranch-no" title="branch not covered" >5432,</span>
+      port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
     });
   } else {
     // No DB configured: create a dummy pool that throws on query to avoid silent failures
-    throw new Error('No database configuration found (set DATABASE_URL or DB_ env vars).');
+<span class="cstat-no" title="statement not covered" >    throw new Error('No database configuration found (set DATABASE_URL or DB_ env vars).');</span>
   }
-  return pool;
+<span class="cstat-no" title="statement not covered" >  return pool;</span>
 }
 &nbsp;
-export async function query(text: string, params?: any[]) {
-  const p = getPool();
-  return p.query(text, params);
+export async function <span class="fstat-no" title="function not covered" >query(</span>text: string, params?: any[]) {
+  const p = <span class="cstat-no" title="statement not covered" >getPool();</span>
+<span class="cstat-no" title="statement not covered" >  return p.query(text, params);</span>
 }
 &nbsp;
-export async function close() {
-  if (pool) {
-    await pool.end();
-    pool = null;
+export async function <span class="fstat-no" title="function not covered" >close(</span>) {
+<span class="cstat-no" title="statement not covered" >  if (pool) {</span>
+<span class="cstat-no" title="statement not covered" >    await pool.end();</span>
+<span class="cstat-no" title="statement not covered" >    pool = null;</span>
   }
 }
 // ...existing code...</pre></td></tr></table></pre>
@@ -181,7 +181,7 @@ export async function close() {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-02-22T15:27:56.628Z
+                at 2026-02-22T20:51:20.972Z
             </div>
         <script src="../prettify.js"></script>
         <script>

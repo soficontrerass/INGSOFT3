@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">22.72% </span>
+                <span class="strong">9.09% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>5/22</span>
+                <span class='fraction'>3/33</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">18.75% </span>
+                <span class="strong">8.33% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>3/16</span>
+                <span class='fraction'>2/24</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">33.33% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/3</span>
+                <span class='fraction'>0/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">25% </span>
+                <span class="strong">9.67% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>5/20</span>
+                <span class='fraction'>3/31</span>
             </div>
         
             
@@ -111,8 +111,22 @@
 <a name='L46'></a><a href='#L46'>46</a>
 <a name='L47'></a><a href='#L47'>47</a>
 <a name='L48'></a><a href='#L48'>48</a>
-<a name='L49'></a><a href='#L49'>49</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-yes">16x</span>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -124,15 +138,28 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -150,6 +177,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -172,17 +200,30 @@ export interface WeatherForecast {
  * Obtener pronóstico de clima desde WeatherAPI
  * Retorna array de hasta 5 días de pronóstico
  */
-export async function getWeatherForecast(city: string): Promise&lt;WeatherForecast[]&gt; {
-  <span class="missing-if-branch" title="else path not taken" >E</span>if (!WEATHERAPI_KEY) {
-    throw new Error('WEATHERAPI_KEY not configured');
+export async function <span class="fstat-no" title="function not covered" >getWeatherForecast(</span>city: string): Promise&lt;WeatherForecast[]&gt; {
+<span class="cstat-no" title="statement not covered" >  if (!WEATHERAPI_KEY) {</span>
+<span class="cstat-no" title="statement not covered" >    throw new Error('WEATHERAPI_KEY not configured');</span>
+  }
+&nbsp;
+  const normalizedCity = <span class="cstat-no" title="statement not covered" >city?.trim();</span>
+<span class="cstat-no" title="statement not covered" >  if (!normalizedCity) {</span>
+<span class="cstat-no" title="statement not covered" >    throw new Error('city is required');</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (!/^[\p{L}\s._-]{1,80}$/u.test(normalizedCity)) {</span>
+<span class="cstat-no" title="statement not covered" >    throw new Error('invalid city format');</span>
   }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  try {</span>
-<span class="cstat-no" title="statement not covered" >    console.log(`[WEATHER] Fetching forecast for ${city}...`);</span>
+<span class="cstat-no" title="statement not covered" >    console.log(`[WEATHER] Fetching forecast for ${normalizedCity}...`);</span>
 &nbsp;
-    const url = <span class="cstat-no" title="statement not covered" >`${WEATHERAPI_URL}/forecast.json?key=${encodeURIComponent(WEATHERAPI_KEY)}&amp;q=${encodeURIComponent(city)}&amp;days=5&amp;aqi=no&amp;alerts=no`;</span>
+    const url = <span class="cstat-no" title="statement not covered" >new URL(`${WEATHERAPI_URL}/forecast.json`);</span>
+<span class="cstat-no" title="statement not covered" >    url.searchParams.set('key', WEATHERAPI_KEY);</span>
+<span class="cstat-no" title="statement not covered" >    url.searchParams.set('q', normalizedCity);</span>
+<span class="cstat-no" title="statement not covered" >    url.searchParams.set('days', '5');</span>
+<span class="cstat-no" title="statement not covered" >    url.searchParams.set('aqi', 'no');</span>
+<span class="cstat-no" title="statement not covered" >    url.searchParams.set('alerts', 'no');</span>
     
-    const response = <span class="cstat-no" title="statement not covered" >await fetch(url);</span>
+    const response = <span class="cstat-no" title="statement not covered" >await fetch(url.toString());</span>
 <span class="cstat-no" title="statement not covered" >    if (!response.ok) {</span>
 <span class="cstat-no" title="statement not covered" >      throw new Error(`WeatherAPI error: ${response.status} ${response.statusText}`);</span>
     }
@@ -195,11 +236,12 @@ export async function getWeatherForecast(city: string): Promise&lt;WeatherForeca
       summary: capitalizeFirst(day?.day?.condition?.text ?? 'Unknown')
     }));
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    console.log(`[WEATHER] Got ${forecasts.length} forecasts for ${city}`);</span>
+<span class="cstat-no" title="statement not covered" >    console.log(`[WEATHER] Got ${forecasts.length} forecasts for ${normalizedCity}`);</span>
 <span class="cstat-no" title="statement not covered" >    return forecasts;</span>
   } catch (err: any) {
-<span class="cstat-no" title="statement not covered" >    console.error(`[WEATHER] Error fetching weather for ${city}:`, err.message);</span>
-<span class="cstat-no" title="statement not covered" >    throw err;</span>
+    const message = <span class="cstat-no" title="statement not covered" >err instanceof Error ? err.message : String(err);</span>
+<span class="cstat-no" title="statement not covered" >    console.error(`[WEATHER] Error fetching weather for ${normalizedCity}:`, message);</span>
+<span class="cstat-no" title="statement not covered" >    throw err instanceof Error ? err : new Error(message);</span>
   }
 }
 &nbsp;
@@ -214,7 +256,7 @@ function <span class="fstat-no" title="function not covered" >capitalizeFirst(</
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-02-22T15:27:56.628Z
+                at 2026-02-22T20:51:20.972Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
