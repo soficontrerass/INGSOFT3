@@ -15,7 +15,7 @@ describe('GET /weatherforecast', () => {
     (global as any).fetch = jest.fn().mockResolvedValue({ json: async () => fake });
 
     const res = await request(app).get('/weatherforecast').expect(200);
-    expect(Array.isArray(res.body)).toBe(true);
+    expect(Array.isArray(res.body)).toBe(false); //romper aca con false para demo 
     expect(res.body[0]).toMatchObject({ temperatureC: 20, summary: 'Sunny' });
   });
 
