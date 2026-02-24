@@ -1,94 +1,126 @@
+# Este pipeline ejecuta: tests unitarios, cobertura de código, análisis SonarCloud, y tests E2E con Cypress
 name: CI7 - tests, coverage, SonarCloud, Cypress
 
+# Triggers: cuándo se ejecuta este workflow
 on:
+  # Se ejecuta automáticamente en cada push
   push:
     branches: [ main, master, restore-c55075c2 ]
     paths:
-      - 'TP7/**'
-      - '.github/workflows/ci7.yml'
+      - 'TP7/**'                          # Solo si cambió código en TP7/
+      - '.github/workflows/ci7.yml'       # O si cambió este mismo workflow
+  # Se ejecuta automáticamente en cada Pull Request a main
   pull_request:
     branches: [ main ]
     paths:
-      - 'TP7/**'
-      - '.github/workflows/ci7.yml'
+      - 'TP7/**'                          # cuando cambio TP7/
+      - '.github/workflows/ci7.yml'       # o este workflow
+  # para ejecutar directamente desde la pagina de git 
   workflow_dispatch: {}
 
+# un solo trabajo(ci) que ejecuta todos los pasos de calidad
 jobs:
   ci:
-    # Ejecutar en un runner Ubuntu
+    # Ejecutar en un runner GitHub-hosted con Ubuntu (máquina virtual Linux)
     runs-on: ubuntu-latest
 
-    # Variables de entorno del job (versión Node y umbral de coverage)
+    # Variables de entorno globales
     env:
-      NODE_VERSION: '20'
-      COVERAGE_THRESHOLD: 70
+      NODE_VERSION: '20'           # Node.js versión 20 LTS para consistencia
+      COVERAGE_THRESHOLD: 70       # Umbral mínimo de cobertura: 70%
 
     steps:
-      # Clonar el repositorio para disponer del código en el runner
+      # 1: Checkout del repositorio
+      # Clonar el código fuente del repositorio en el runner para poder trabajar
+      # Si este paso falla: no hay código para trabajar y el pipeline aborta
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Instalar Node.js en la versión indicada
+      # 2: Instalar Node.js
+      # Instalar Node.js en la versión especificada (v20)
+      # Si este paso falla: no podemos ejecutar npm ni node comandos
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      # Mostrar versiones de node/npm (útil para debug en logs)
+      # 3: Mostrar versiones (debug)
+      # Imprimir versiones de node/npm/pnpm en los logs para debugging
+      # Útil para verificar que tenemos las versiones correctas
+      # || true evita que el paso falle si pnpm no está instalado
       - name: Show node & npm versions (debug)
         run: |
           node -v
           npm -v
           pnpm -v || true
 
-      # Instalar dependencias del servidor (backend)
+      # 4: Instalar dependencias del servidor (backend)
+      # npm ci = "clean install", más rápido que npm install, usa package-lock.json
+      # Si falla: el servidor no tendrá dependencias y los tests fallarán
       - name: Install server dependencies
         run: |
           cd TP7/server
           npm ci
 
-      # Ejecutar tests unitarios del servidor y generar cobertura
+      # 5: Ejecutar tests del servidor con cobertura
+      # npm run test:ci ejecuta Jest en modo CI con coverage
+      # Genera el reporte de cobertura en TP7/server/coverage/
+      # Si falla: los tests del servidor no pasaron, hay bugs
       - name: Run server tests (Jest + coverage)
         run: |
           cd TP7/server
           npm run test:ci
 
-      # Subir el reporte de coverage del servidor como artifact
+      # 6: Subir reporte de cobertura del servidor como artifact
+      # Guarda el reporte de coverage en GitHub Actions artifacts
+      # Permite descargar el reporte completo después del build
       - name: Upload server coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: server-coverage
           path: TP7/server/coverage
 
-      # Instalar dependencias del cliente (frontend)
+      # 7: Instalar dependencias del cliente (frontend)
+      # Similar al paso 4, pero para el frontend en TP7/client/
+      # Si falla: el cliente no tendrá dependencias y los tests fallarán
       - name: Install client dependencies
         run: |
           cd TP7/client
           npm ci
 
-      # Ejecutar tests del cliente (Vitest u otra herramienta) y generar coverage
+      # 8: Ejecutar tests del cliente con cobertura
+      # npm run test:ci ejecuta Vitest en modo CI con coverage
+      # Genera el reporte de cobertura en TP7/client/coverage/
+      # Si falla: los tests del cliente no pasaron, hay bugs
       - name: Run client tests (Vitest + coverage)
         run: |
           cd TP7/client
           npm run test:ci
 
-      # Subir el reporte de coverage del cliente como artifact
+      # 9: Subir reporte de cobertura del cliente como artifact
+      # Similar al paso 6, pero para el frontend
       - name: Upload client coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: client-coverage
           path: TP7/client/coverage
 
-      # Normalizar rutas en archivos lcov para SonarCloud (reemplaza backslashes y prefija paths)
+      # 10: Normalizar archivos LCOV para SonarCloud
+      # Los archivos lcov.info contienen información de cobertura en formato LCOV
+      # SonarCloud necesita que las rutas en lcov.info sean relativas y consistentes
+      # Problemas que resuelve:
+      # Permite a SonarCloud correlacionar coverage con archivos fuente
+      # Si este paso falla: SonarCloud puede no reconocer cobertura = 0% report
       - name: Normalize & Debug LCOV for Sonar (client + server)
         run: |
           set -e
           echo "=== Normalize client LCOV ==="
           if [ -f TP7/client/coverage/lcov.info ]; then
-            # convertir backslashes a slashes
+            # convertir backslashes a slashes (Windows → Unix paths)
             sed -i 's#\\#/#g' TP7/client/coverage/lcov.info || true
 
             # prefijar solo si no empieza ya con client/
+            # SF: = Source File en formato LCOV
             awk 'BEGIN{FS=OFS=""} /^SF:/ {
                 if ($0 !~ /^SF:client\//) {
                   sub(/^SF:(\.\/*)?/, "SF:client/");
@@ -96,6 +128,7 @@ jobs:
             }
             {print}' TP7/client/coverage/lcov.info > /tmp/client_lcov.tmp && mv /tmp/client_lcov.tmp TP7/client/coverage/lcov.info || true
 
+            # Debug: mostrar primeras 80 líneas del lcov normalizado
             echo "Client LCOV head (first 80 lines):"
             head -n 80 TP7/client/coverage/lcov.info || true
             echo "Client SF count:"
@@ -108,6 +141,7 @@ jobs:
 
           echo "=== Normalize server LCOV ==="
           if [ -f TP7/server/coverage/lcov.info ]; then
+            # Mismo proceso para el servidor
             sed -i 's#\\#/#g' TP7/server/coverage/lcov.info || true
 
             awk 'BEGIN{FS=OFS=""} /^SF:/ {
@@ -127,22 +161,33 @@ jobs:
             echo "TP7/server/coverage/lcov.info not found"
           fi
 
-      # Comprobar umbrales de coverage definidos en la herramienta local (script JS)
+      # 11: Verificar umbrales de cobertura localmente
+      # Ejecuta un script JS personalizado (TP7/tools/check-coverage.js)
+      # que verifica que tanto cliente como servidor superen el umbral de 70%
+      # Si falla: la cobertura está por debajo del mínimo exigido
       - name: Check coverage thresholds (server & client)
         run: node TP7/tools/check-coverage.js
 
+      # 12: Reinstalar y testear servidor (redundante, pero garantiza state limpio)
+      # Este paso repite pasos 4-5 para garantizar que el servidor está en estado limpio
       - name: Install & test (server)
         working-directory: TP7/server
         run: |
           npm ci
           npm run test:ci   # debe generar server/coverage/lcov.info
 
+      # 13: Reinstalar y testear cliente (redundante, pero garantiza state limpio)
+      # Similar al paso 12, pero para el cliente
       - name: Install & test (client)
         working-directory: TP7/client
         run: |
           npm ci
           npm run test:ci   # debe generar client/coverage/lcov.info
 
+      # 14: Debug de archivos antes de SonarCloud
+      # Lista archivos en TP7/ y verifica que lcov.info existan
+      # Muestra primeras 20 líneas de cada lcov.info para validar formato
+      # Si los archivos no existen: SonarCloud no recibirá coverage = fallo
       - name: Debug list TP7 files
         run: |
           echo "PWD: $PWD"
@@ -164,6 +209,9 @@ jobs:
           fi
         shell: bash
 
+      # 15: Debug de argumentos de SonarCloud (dry-run)
+      # Imprime los argumentos que se pasarán a SonarCloud para validar
+      # No ejecuta ningún comando, solo imprime variables para verificar
       - name: Debug print Sonar args env
         run: |
           echo "SONAR_PROJECT_KEY=${{ secrets.SONAR_PROJECT_KEY }}"
@@ -174,7 +222,19 @@ jobs:
         shell: bash
 
 
-      # Ejecutar SonarCloud scan (envía fuentes y paths de lcov)
+      # 16: Ejecutar SonarCloud Scan
+      # Envía código fuente y reportes de cobertura a SonarCloud para análisis
+      # SonarCloud analiza: bugs, vulnerabilidades, code smells, duplicación, coverage
+      #
+      # Parámetros importantes:
+      # - projectBaseDir: TP7 (analiza solo TP7, no todo el repo)
+      # - sonar.projectKey: identifica el proyecto en SonarCloud
+      # - sonar.organization: identifica la org en SonarCloud
+      # - sonar.branch.name: branch actual (main, feature/xyz, etc)
+      # - sonar.javascript.lcov.reportPaths: rutas relativas a TP7/ de los lcov.info
+      # - -X: modo verbose/debug para troubleshooting
+      #
+      # Si falla: puede ser error de autenticación, paths incorrectos, o análisis incompleto
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
         with:
@@ -189,7 +249,21 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-      # Consultar el Quality Gate de SonarCloud y fallar si no es OK
+      # 17: Verificar Quality Gate de SonarCloud
+      # Consulta la API de SonarCloud para obtener el status del Quality Gate
+      # El Quality Gate es un conjunto de condiciones (coverage >= 80%, bugs = 0, etc)
+      # 
+      # Lógica:
+      # 1. Instala jq y curl para hacer requests HTTP y parsear JSON
+      # 2. Polling: intenta hasta 12 veces con 5 segundos de espera (60s total)
+      # 3. Consulta API: GET /api/qualitygates/project_status?projectKey=...
+      # 4. Parsea JSON: extrae campo .projectStatus.status (puede ser "OK", "ERROR", "NONE")
+      # 5. Si status = "OK": el código cumple los estándares → continúa pipeline
+      # 6. Si status = "ERROR": el código NO cumple → falla el pipeline y bloquea merge
+      #
+      # if: always() → ejecuta incluso si pasos anteriores fallaron (para reportar Quality Gate)
+      #
+      # Si falla: el código no cumple Quality Gate (ej: coverage < 80%, security rating < A)
       - name: Check SonarCloud Quality Gate
         if: always()
         env:
@@ -223,7 +297,13 @@ jobs:
             exit 1
           fi
 
-      # Compilar el cliente para pruebas E2E (genera dist)
+      # 18: Compilar el cliente para Cypress
+      # Build del frontend con Vite para generar el bundle de producción en dist/
+      # Detecta automáticamente si el cliente está en TP7/client o client/
+      # npm ci: instala dependencias de forma reproducible
+      # npm run build: ejecuta Vite build → genera TP7/client/dist/
+      #
+      # Si falla: el build del frontend tiene errores de TypeScript o de bundling
       - name: Install client deps & build
         run: |
           CLIENT_DIR="client"
@@ -235,7 +315,13 @@ jobs:
           fi
           npm --prefix "${CLIENT_DIR}" run build
 
-      # Servir el build del cliente en el runner en el puerto 3000 (para Cypress)
+      # 19: Servir el cliente en puerto 3000 (background)
+      # Usa http-server (o npx http-server) para servir TP7/client/dist/
+      # Se ejecuta en background (&) para que no bloquee el workflow
+      # Guarda el PID en un archivo para poder matar el proceso después
+      # 
+      # ¿Por qué?: Cypress necesita un servidor web corriendo para visitar las páginas
+      # Si falla: Cypress no podrá conectarse a localhost:3000 en paso 21
       - name: Serve client dist on :3000 (background)
         run: |
           CLIENT_DIR="client"
@@ -243,27 +329,51 @@ jobs:
           npm --prefix "${CLIENT_DIR}" i -g http-server || true
           npx http-server "${CLIENT_DIR}/dist" -p 3000 & echo $! > "${CLIENT_DIR}/http-server.pid"
 
-      # Esperar a que el servidor http del cliente esté listo
+      # 20: Esperar a que el servidor esté listo
+      # wait-on es una utilidad que hace polling a una URL hasta que responda
+      # Evita race conditions donde Cypress empieza antes de que el server esté listo
+      # Si falla: el servidor en :3000 nunca respondió → problema con el build o http-server
       - name: Wait for client on :3000
         run: npx wait-on http://localhost:3000
 
-      # Ejecutar tests E2E de Cypress contra el cliente servido localmente
+      # 21: Ejecutar Cypress (primera invocación, manual)
+      # Ejecuta tests E2E con Cypress desde la carpeta TP7/client/
+      # cypress run: modo headless (sin UI, para CI)
+      # --config baseUrl=http://localhost:3000: apunta a nuestro servidor local
+      # --spec: ejecuta todos los archivos .cy.js en cypress/e2e/
+      #
+      # Si falla: los tests E2E fallaron (la UI tiene bugs)
       - name: Run Cypress tests (run from client folder)
         run: npx cypress run --config baseUrl=http://localhost:3000 --spec "cypress/e2e/*.cy.js"
         working-directory: TP7/client
 
-      # Iniciar backend en background para las pruebas E2E (si es necesario)
+      # 22: Iniciar backend para E2E (background)
+      # Si los tests E2E necesitan un backend real, lo iniciamos aquí
+      # npm run start: corre el servidor Express (puerto 8080 por defecto)
+      # &>/dev/null: oculta logs del servidor
+      # & echo $! > server.pid: guarda PID para matar después
+      # continue-on-error: false → si falla, aborta pipeline
+      #
+      # Si falla: el backend tiene errores al iniciar
       - name: Start backend for E2E
         run: |
           cd TP7/server
           npm run start &>/dev/null & echo $! > server.pid
         continue-on-error: false
 
-      # Instalar dependencias del cliente específicamente para Cypress
+      # 23: Reinstalar deps del cliente para Cypress (redundante)
+      # Garantiza que Cypress y dependencias estén instaladas
       - name: Install client dependencies for Cypress
         run: npm ci --prefix TP7/client
 
-      # Ejecutar Cypress E2E usando la acción oficial (usa el cliente servido en localhost)
+      # 24: Ejecutar Cypress con la acción oficial
+      # Usa cypress-io/github-action@v6 (acción oficial de Cypress)
+      # Ventajas: cachea binarios de Cypress, maneja instalación automática
+      # wait-on: espera a que el backend en :8080 esté listo antes de correr tests
+      # browser: chrome (headless en CI)
+      # record: false (no sube resultados a Cypress Dashboard)
+      #
+      # Si falla: los tests E2E fallaron (frontend + backend integrados tienen bugs)
       - name: Run Cypress E2E tests
         uses: cypress-io/github-action@v6
         with:
@@ -273,13 +383,22 @@ jobs:
           browser: chrome
           record: false
 
-      # Parar el backend iniciado para E2E (si existe), paso ejecutado siempre
+      # 25: Parar el backend
+      # Mata el proceso del backend usando el PID guardado en server.pid
+      # if: always() → ejecuta incluso si algún paso anterior falló
+      # || true → no falla si el proceso ya murió
+      # rm -f: borra el archivo PID
+      #
+      # ¿Por qué?: Limpieza de recursos, evitar procesos zombie
       - name: Stop backend
         if: always()
         run: |
           if [ -f TP7/server/server.pid ]; then kill $(cat TP7/server/server.pid) || true; rm -f TP7/server/server.pid; fi
 
-      # Subir resultados de Cypress (screenshots, videos, reports) como artifacts
+      # 26: Subir resultados de Cypress como artifacts
+      # Guarda screenshots, videos, y reportes de Cypress
+      # if: always() → sube artifacts incluso si Cypress falló
+      # Útil para debugging: si un test falla, podemos ver el screenshot/video
       - name: Upload Cypress results
         if: always()
         uses: actions/upload-artifact@v4
@@ -290,6 +409,8 @@ jobs:
             TP7/client/cypress/videos
             TP7/client/cypress/screenshots
 
-      # Mensaje final de estado del pipeline
+      # PASO 27: Mensaje final
+      # Mensaje de confirmación de que el pipeline completó exitosamente
+      # Solo se ejecuta si todos los pasos anteriores pasaron
       - name: Final status
         run: echo "CI7 pipeline completed"

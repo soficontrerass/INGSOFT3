@@ -1,43 +1,90 @@
+# Este pipeline ejecuta: build → deploy QA (automático) → deploy PROD (manual approval)
 name: Deploy TP7 to Cloud Run
 
+# Triggers: cuándo se ejecuta este workflow
 on:
+  # Se ejecuta en cada push a main 
   push:
     branches: [ main ]
     paths:
-      - 'TP7/**'
-      - '.github/workflows/deploy-tp7.yml'
+      - 'TP7/**'                            # Cualquier cambio en código de TP7
+      - '.github/workflows/deploy-tp7.yml'  # O cambio en este workflow
+  # Permite ejecutar manualmente desde la UI de GitHub Actions
   workflow_dispatch: {}
 
+# Variables de entorno globales
 env:
-  REPO: tp7-repo
-  PROJECT: ${{ secrets.GCP_PROJECT7_ID }}
-  REGION: ${{ secrets.GCP_REGION7 }}
-  SHA: ${{ github.sha }}
+  REPO: tp7-repo                                  # Nombre del Artifact Registry repository
+  PROJECT: ${{ secrets.GCP_PROJECT7_ID }}         # GCP Project ID (desde secrets)
+  REGION: ${{ secrets.GCP_REGION7 }}              # GCP Region (us-central1, etc)
+  SHA: ${{ github.sha }}                          # Commit SHA para tagear imágenes Docker
 
+# JOB 1: build-server
+# Objetivo: Construir la imagen Docker del servidor y pushearla a Artifact Registry
+# job separado: permite reusar la misma imagen en QA y PROD
 jobs:
   build-server:
     name: Build & push server image (TP7)
     runs-on: ubuntu-latest
+    # Environment: "qa7" → usa secrets y configuración del environment QA
+    # GitHub Environments permiten: secrets, protection rules, deployment history
     environment: qa7
     steps:
+      # 1: Checkout del código fuente
+      # Clona el repositorio para tener acceso al código
+      # Si falla: no hay código para buildear la imagen
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 2: Autenticación con GCP (usando Service Account de QA)
+      # Usa una Service Account Key en formato JSON almacenada en secrets
+      # Permite autenticar todas las operaciones gcloud subsecuentes
+      # 
+      # ¿Por qué QA SA?: usamos mismas credenciales QA para build porque
+      # la imagen se sube a Artifact Registry una sola vez y se reutiliza
+      # Si falla: no podemos interactuar con GCP (sin permisos)
       - name: Authenticate to GCP (QA)
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY7_QA }}
 
+      # 3: Instalar y configurar gcloud CLI
+      # Instala la herramienta de línea de comandos gcloud
+      # Configura el project ID por defecto
+      # Si falla: no podemos ejecutar comandos gcloud
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT7_ID }}
           version: latest
 
+      # 4: Habilitar APIs necesarias de GCP
+      # Habilita APIs necesarias para el proyecto:
+      # - run.googleapis.com: Cloud Run (para deployar servicios)
+      # - sqladmin.googleapis.com: Cloud SQL Admin (para gestionar BD PostgreSQL)
+      # - artifactregistry.googleapis.com: Artifact Registry (para almacenar imágenes Docker)
+      # - cloudbuild.googleapis.com: Cloud Build (para builds remotos si es necesario)
+      #
+      # --quiet: no pide confirmación
+      # || true: no falla si las APIs ya están habilitadas
+      #
+      # Si falla: puede indicar permisos insuficientes de la SA
       - name: Enable required APIs
         run: |
           gcloud services enable run.googleapis.com sqladmin.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com --project "$PROJECT" --quiet || true
 
+      # PASO 5: Build y push de la imagen Docker del servidor
+      # 1. Define nombre de imagen: REGION-docker.pkg.dev/PROJECT/REPO/tp7-server:SHA
+      # 2. Configura Docker para autenticar contra Artifact Registry
+      # 3. docker build: construye imagen desde TP7/server/Dockerfile
+      # 4. docker push: sube imagen a Artifact Registry
+      #
+      # Tag con SHA: permite desplegar versiones específicas en QA y PROD
+      # 
+      # Si falla: 
+      # - Dockerfile tiene errores
+      # - Dependencias del servidor no se instalan correctamente
+      # - No hay permisos de escritura en Artifact Registry
       - name: Build & push TP7 server image
         run: |
           SERVER_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
@@ -45,30 +92,57 @@ jobs:
           docker build -t "${SERVER_IMAGE}" TP7/server
           docker push "${SERVER_IMAGE}"
 
+  # JOB 2: deploy-qa
+  # Objetivo: Desplegar automáticamente a QA (ambiente de pruebas)
+  # Dependencia: needs build-server → solo se ejecuta si el build fue exitoso 
   deploy-qa:
     name: Deploy TP7 to QA
-    needs: build-server
+    needs: build-server                           # Espera a que build-server complete
     runs-on: ubuntu-latest
-    environment: qa7
+    environment: qa7                              # Usa environment QA (secrets, protection rules)
     steps:
+      # 1: Checkout del código
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 2: Autenticar con GCP (QA Service Account)
       - name: Authenticate to GCP (QA)
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY7_QA }}
 
+      # 3: Configurar gcloud
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT7_ID }}
           version: latest
 
+      # 4: Deploy del servidor QA a Cloud Run
+      # gcloud run deploy: crea o actualiza un servicio de Cloud Run
+      #
+      # Parámetros clave:
+      # - tp7-server-qa: nombre del servicio en Cloud Run
+      # - --image: imagen Docker a desplegar (la buildeada en job anterior)
+      # - --region: región de GCP donde se despliega
+      # - --platform managed: Cloud Run fully managed (serverless)
+      # - --allow-unauthenticated: permite acceso público (sin auth)
+      # - --service-account: SA que usará el servicio en runtime (para permisos Cloud SQL)
+      # - --add-cloudsql-instances: conecta el servicio a Cloud SQL vía Unix socket
+      # - --set-env-vars: variables de entorno del contenedor
+      #   · DB_HOST: path al socket Cloud SQL (/cloudsql/PROJECT:REGION:INSTANCE)
+      #   · DB_USER, DB_PASS, DB_NAME: credenciales PostgreSQL
+      #   · NODE_ENV=qa: indica al código que está en QA
+      #   · WEATHERAPI_KEY: API key para servicio externo
+      #
+      # Si falla: 
+      # - La imagen no existe en Artifact Registry
+      # - Permisos insuficientes de la SA
+      # - Cloud SQL instance no existe o no es accesible
       - name: Deploy TP7 server QA (Cloud SQL)
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
-          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME7_QA }}"
+          INSTANCE_CONN_NAME="${{ secrets.INSTANCE_CONN_NAME7_QA }}"  #aca va el connection name del Cloud SQL de QA
           RUNTIME_SA="tp7-sa-qa@${PROJECT}.iam.gserviceaccount.com"
           gcloud run deploy tp7-server-qa \
             --image "${IMAGE}" \
@@ -80,6 +154,29 @@ jobs:
             --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_QA }}",DB_NAME="${{ secrets.DB_NAME7_QA }}",NODE_ENV="qa",WEATHERAPI_KEY="${{ secrets.WEATHERAPI_KEY7_QA }}" \
             --project "${PROJECT}" --quiet
 
+      # 5: Ejecutar migraciones de base de datos en QA
+      # Usa Cloud Run Jobs para ejecutar migraciones de BD de forma controlada
+      #
+      # Lógica:
+      # 1. Define nombre del job: tp7-migrate-qa
+      # 2. Verifica si el job ya existe (gcloud run jobs describe)
+      # 3. Si NO existe: gcloud run jobs create (primera vez)
+      # 4. Si existe: gcloud run jobs update (actualiza imagen y config)
+      # 5. Ejecuta el job: gcloud run jobs execute --wait (espera a que termine)
+      # 6. Si falla: captura logs del job para debugging
+      #
+      # Parámetros del job:
+      # - --command node --args dist/migrate.js: ejecuta el script de migraciones
+      # - --max-retries 0: no reintenta si falla (migraciones idempotentes)
+      # - --set-cloudsql-instances: conecta a Cloud SQL
+      # - --set-env-vars: credenciales de BD
+      #
+      # set +e / set -e: permite capturar exit status del job sin abortar el script
+      #
+      # Si falla:
+      # - Migraciones tienen errores SQL
+      # - Cloud SQL no es accesible desde el job
+      # - Credenciales de BD incorrectas
       - name: Run migrations QA (Cloud Run Job)
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
@@ -137,12 +234,35 @@ jobs:
             exit ${EXEC_STATUS}
           fi
 
+      # ============================================================
+      # PASO 6: Smoke test del servidor QA
+      # ============================================================
+      # Verifica que el servidor QA esté respondiendo correctamente
+      # 1. Obtiene la URL del servicio Cloud Run: gcloud run services describe
+      # 2. Hace curl a /health endpoint
+      # --fail: curl retorna exit code != 0 si HTTP status >= 400
+      # --retry 5: reintenta hasta 5 veces si falla
+      # --retry-delay 3: espera 3 segundos entre reintentos
+      #
+      # Si falla: el servidor no está respondiendo (problema en deploy o código)
       - name: Smoke test server QA
         run: |
           URL=$(gcloud run services describe tp7-server-qa --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')
           echo "QA server URL: $URL"
           curl --fail --retry 5 --retry-delay 3 "$URL/health"
 
+      # ============================================================
+      # PASO 7: Build y push de la imagen del cliente QA
+      # ============================================================
+      # El cliente necesita conocer la URL del servidor en build time (Vite)
+      # 1. Obtiene URL del servidor QA recién desplegado
+      # 2. Construye imagen Docker del cliente con --build-arg VITE_API_URL
+      # 3. Tag incluye "-qa" para distinguirla de la imagen PROD
+      # 4. Pushea imagen a Artifact Registry
+      #
+      # --no-cache: fuerza rebuild completo (asegura VITE_API_URL actualizado)
+      #
+      # Si falla: Dockerfile del cliente tiene errores o build de Vite falla
       - name: Build & push TP7 client image (QA API URL)
         run: |
           SERVER_URL=$(gcloud run services describe tp7-server-qa --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')
@@ -151,6 +271,13 @@ jobs:
           docker build --no-cache --build-arg VITE_API_URL="${SERVER_URL}" -t "${CLIENT_IMAGE}" TP7/client
           docker push "${CLIENT_IMAGE}"
 
+      # ============================================================
+      # PASO 8: Deploy del cliente QA a Cloud Run
+      # ============================================================
+      # Despliega la imagen del cliente (Vite build servido con nginx o similar)
+      # Similar al deploy del servidor pero sin Cloud SQL (frontend estático)
+      #
+      # Si falla: permisos insuficientes o imagen no existe
       - name: Deploy TP7 client QA
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-client:${SHA}-qa"
@@ -163,32 +290,70 @@ jobs:
             --service-account "${RUNTIME_SA}" \
             --project "${PROJECT}" --quiet
 
+      # ============================================================
+      # PASO 9: Smoke test del cliente QA
+      # ============================================================
+      # Verifica que el cliente QA esté sirviendo contenido
+      # Hace GET a la root del cliente (debe retornar HTML)
+      #
+      # Si falla: el cliente no está desplegado correctamente
       - name: Smoke test client QA
         run: |
           URL=$(gcloud run services describe tp7-client-qa --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')
           echo "QA client URL: $URL"
           curl --fail --retry 5 --retry-delay 3 "$URL"
 
+  # ============================================================
+  # JOB 3: deploy-prod
+  # ============================================================
+  # Objetivo: Desplegar a PRODUCCIÓN (ambiente real con usuarios)
+  # Dependencia: needs deploy-qa → solo se ejecuta si QA fue exitoso
+  # DIFERENCIA CLAVE: environment prod7 tiene protection rules (manual approval)
   deploy-prod:
     name: Deploy TP7 to PROD (manual approval)
-    needs: deploy-qa
+    needs: deploy-qa                              # Espera a que deploy-qa complete exitosamente
     runs-on: ubuntu-latest
+    # Environment: "prod7" → requiere aprobación manual antes de ejecutar
+    # GitHub muestra un botón "Review deployments" que debe aprobar un revisor autorizado
     environment: prod7
     steps:
+      # ============================================================
+      # PASO 1: Checkout del código
+      # ============================================================
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ============================================================
+      # PASO 2: Autenticar con GCP (PROD Service Account)
+      # ============================================================
+      # IMPORTANTE: Usa credenciales diferentes (GCP_SA_KEY7_PROD)
+      # La SA de PROD tiene permisos solo sobre recursos de PROD
+      # Esto garantiza separación de ambientes (seguridad)
       - name: Authenticate to GCP (PROD)
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY7_PROD }}
 
+      # ============================================================
+      # PASO 3: Configurar gcloud
+      # ============================================================
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT7_ID }}
           version: latest
 
+      # ============================================================
+      # PASO 4: Deploy del servidor PROD a Cloud Run
+      # ============================================================
+      # Similar al deploy de QA, pero con diferencias clave:
+      # - Nombre del servicio: tp7-server (sin sufijo -qa)
+      # - Service Account: tp7-sa-prod (permisos de PROD)
+      # - Cloud SQL instance: INSTANCE_CONN_NAME7_PROD (BD de producción)
+      # - Variables de entorno: DB_PASS7_PROD, DB_NAME7_PROD, NODE_ENV=production
+      # - Misma imagen Docker que QA (garantiza que lo testeado en QA va a PROD)
+      #
+      # Si falla: problema en deploy o configuración de PROD (revisar secrets y Cloud SQL)
       - name: Deploy TP7 server PROD (Cloud SQL)
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
@@ -204,6 +369,14 @@ jobs:
             --set-env-vars DB_HOST="/cloudsql/${INSTANCE_CONN_NAME}",DB_USER="postgres",DB_PASS="${{ secrets.DB_PASS7_PROD }}",DB_NAME="${{ secrets.DB_NAME7_PROD }}",NODE_ENV="production",WEATHERAPI_KEY="${{ secrets.WEATHERAPI_KEY7_PROD }}" \
             --project "${PROJECT}" --quiet
 
+      # ============================================================
+      # PASO 5: Ejecutar migraciones de BD en PROD
+      # ============================================================
+      # Idéntico al paso de QA pero para PROD
+      # Ejecuta migraciones contra tp7-sql-prod (Cloud SQL PROD instance)
+      # CRÍTICO: Migraciones en PROD deben ser backward-compatible
+      #
+      # Si falla: las migraciones tienen errores o no son idempotentes
       - name: Run migrations PROD (Cloud Run Job)
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-server:${SHA}"
@@ -261,12 +434,26 @@ jobs:
             exit ${EXEC_STATUS}
           fi
 
+      # ============================================================
+      # PASO 6: Smoke test del servidor PROD
+      # ============================================================
+      # Verifica que el servidor PROD esté respondiendo
+      # Hace GET a /health endpoint
+      #
+      # Si falla: servidor PROD no está funcionando (revertir deploy!)
       - name: Smoke test server PROD
         run: |
           URL=$(gcloud run services describe tp7-server --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')
           echo "PROD server URL: $URL"
           curl --fail --retry 5 --retry-delay 3 "$URL/health"
 
+      # ============================================================
+      # PASO 7: Build y push de la imagen del cliente PROD
+      # ============================================================
+      # Build del cliente apuntando al servidor PROD
+      # Tag incluye "-prod" para distinguirla de QA
+      #
+      # Si falla: error en build del cliente
       - name: Build & push TP7 client image (PROD API URL)
         run: |
           SERVER_URL=$(gcloud run services describe tp7-server --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')
@@ -275,6 +462,13 @@ jobs:
           docker build --no-cache --build-arg VITE_API_URL="${SERVER_URL}" -t "${CLIENT_IMAGE}" TP7/client
           docker push "${CLIENT_IMAGE}"
 
+      # ============================================================
+      # PASO 8: Deploy del cliente PROD a Cloud Run
+      # ============================================================
+      # Despliega cliente PROD (servicio tp7-client sin sufijo)
+      # Este es el cliente que verán los usuarios finales
+      #
+      # Si falla: problema en deploy o permisos
       - name: Deploy TP7 client PROD
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/tp7-client:${SHA}-prod"
@@ -287,6 +481,13 @@ jobs:
             --service-account "${RUNTIME_SA}" \
             --project "${PROJECT}" --quiet
 
+      # ============================================================
+      # PASO 9: Smoke test del cliente PROD
+      # ============================================================
+      # Verifica que el cliente PROD esté sirviendo contenido
+      # Último paso del pipeline: si llega aquí, deploy exitoso!
+      #
+      # Si falla: cliente PROD no responde (revertir deploy!)
       - name: Smoke test client PROD
         run: |
           URL=$(gcloud run services describe tp7-client --region "${REGION}" --project "${PROJECT}" --format='value(status.url)')

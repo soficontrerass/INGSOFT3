@@ -1,7 +1,8 @@
 version: '3.8'
 
-# PROD Environment - More restrictive, persistent volumes, explicit resource limits
-# Usage: docker compose -f docker-compose.prod.yml up -d
+# PROD Environment -
+# sirve para levantar una configuración optimizada para producción, con mejores prácticas de seguridad, rendimiento y monitoreo.
+# separada del entorno de desarrollo 
 
 services:
   db:
